@@ -1,0 +1,21 @@
+[project]
+name = "controlcamera"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "sandrorsjunior",email = "sandrorsjunior@outlook.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "opencv-python (>=4.13.0.90,<5.0.0.0)",
+    "pillow (>=12.1.0,<13.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "controlcamera", from = "src"}]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
