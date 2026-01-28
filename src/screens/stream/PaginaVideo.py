@@ -11,6 +11,16 @@ class PaginaVideo(tk.Frame):
         self.controller = controller
         self.bg_color = "#e6e6e6"
         self.configure(bg=self.bg_color)
+
+        self.params = {
+            "hsv_limiar_min": None,
+            "hsv_limiar_max": None,
+            "threshold": None,
+            "contour_config": {
+                "draw": True
+            },
+            "blur": 1
+        }
         
         # Variáveis de Estado
         self.running = False
@@ -193,16 +203,14 @@ class PaginaVideo(tk.Frame):
         
         # 4. Instanciar Processador com parâmetros da GUI
         processor = ProcessImage(image=img_processar)
-        
-        # 5. Detetar
-        # Aqui fazemos a deteção manual para usar os thresholds dos sliders
-        t1 = self.slider_th1.get()
-        t2 = self.slider_th2.get()
-        
-        # Criação manual de contornos para usar os sliders
-        gray = cv2.cvtColor(img_processar, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, t1, t2)
-        contours, hierarchy = cv2.findContours(edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+
+        upper,lower = np.array([(self.slider_Hue_min.get(), self.slider_Sat_min.get(), self.slider_Value_min.get()),
+                                 (self.slider_Hue_max.get(), self.slider_Sat_max.get(), self.slider_Value_max.get())])
+        print(lower, upper)
+        mask = processor.create_mask_by_HSV(lower, upper)
+        mask_clean = processor.remove_noise(mask)
+            # 3. Obtém contornos e hierarquia
+        contours, hierarchy = processor.get_contours_hierarchy(mask_clean)
         
         if contours:
             img_resultado = processor.objects_detection(
@@ -222,7 +230,7 @@ class PaginaVideo(tk.Frame):
             self.var_pecas_detectadas.set("0")
 
         # 6. Converter para mostrar no Tkinter
-        self.mostrar_imagem_no_label(gray)
+        self.mostrar_imagem_no_label(mask)
 
     def iniciar_video(self):
         if not self.running and not self.modo_estatico:
