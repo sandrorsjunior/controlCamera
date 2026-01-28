@@ -30,6 +30,7 @@ class PaginaVideo(tk.Frame):
         # Variáveis de Controlo (Tkinter Variables)
         self.var_pecas_detectadas = tk.StringVar(value="0")
         self.var_forma = tk.StringVar(value="square")
+        self.var_imagem_tipo = tk.StringVar(value="img_resultado")
         
         # --- LAYOUT PRINCIPAL (2 Colunas) ---
         # Coluna Esquerda: Vídeo + Botões Ação
@@ -77,7 +78,7 @@ class PaginaVideo(tk.Frame):
         self.lbl_valor_pecas.pack(fill="x", pady=(0, 15))
 
         # 3. Threshold Limiar
-        box_hsv_limiar_min = tk.LabelFrame(self.frame_controls, text="HSV limits", **style_box)
+        box_hsv_limiar_min = tk.LabelFrame(self.frame_controls, text="HSV limits MIN", **style_box)
         box_hsv_limiar_min.pack(fill="x", pady=5)
         
         self.slider_Hue_min = tk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", label="Min Val", bg=self.bg_color, command=self.ao_mexer_slider)
@@ -92,7 +93,7 @@ class PaginaVideo(tk.Frame):
         self.slider_Value_min.set(150)
         self.slider_Value_min.pack(fill="x", padx=5)
 
-        box_hsv_limiar_max = tk.LabelFrame(self.frame_controls, text="HSV limits", **style_box)
+        box_hsv_limiar_max = tk.LabelFrame(self.frame_controls, text="HSV limits MAX", **style_box)
         box_hsv_limiar_max.pack(fill="x", pady=5)
         
         self.slider_Hue_max = tk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", label="Min Val", bg=self.bg_color, command=self.ao_mexer_slider)
@@ -107,17 +108,7 @@ class PaginaVideo(tk.Frame):
         self.slider_Value_max.set(150)
         self.slider_Value_max.pack(fill="x", padx=5)
 
-        # 3. Threshold Limiar
-        box_threshold = tk.LabelFrame(self.frame_controls, text="Threshold Limiar", **style_box)
-        box_threshold.pack(fill="x", pady=5)
         
-        self.slider_th1 = tk.Scale(box_threshold, from_=0, to=255, orient="horizontal", label="Min Val", bg=self.bg_color, command=self.ao_mexer_slider)
-        self.slider_th1.set(50)
-        self.slider_th1.pack(fill="x", padx=5)
-        
-        self.slider_th2 = tk.Scale(box_threshold, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
-        self.slider_th2.set(150)
-        self.slider_th2.pack(fill="x", padx=5)
 
         # 4. Contour & Blur Config (Lado a Lado)
         frame_configs = tk.Frame(self.frame_controls, bg=self.bg_color)
@@ -144,7 +135,15 @@ class PaginaVideo(tk.Frame):
         self.entry_desc = tk.Entry(self.frame_controls)
         self.entry_desc.pack(fill="x", pady=(0, 10))
         
-        # 6. Forms Selection
+        # 6. View Type Selection
+        box_view = tk.LabelFrame(self.frame_controls, text="View Type", **style_box)
+        box_view.pack(fill="x", pady=5)
+        tk.Radiobutton(box_view, text="Result", variable=self.var_imagem_tipo, value="img_resultado", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        tk.Radiobutton(box_view, text="Mask Clean", variable=self.var_imagem_tipo, value="mask_clean", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        tk.Radiobutton(box_view, text="Mask Raw", variable=self.var_imagem_tipo, value="mask", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        tk.Radiobutton(box_view, text="Original Frozen", variable=self.var_imagem_tipo, value="imagem_congelada", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+
+        # 7. Forms Selection
         box_forms = tk.LabelFrame(self.frame_controls, text="Forms", **style_box)
         box_forms.pack(fill="x", pady=5)
         
@@ -230,7 +229,15 @@ class PaginaVideo(tk.Frame):
             self.var_pecas_detectadas.set("0")
 
         # 6. Converter para mostrar no Tkinter
-        self.mostrar_imagem_no_label(mask)
+        tipo = self.var_imagem_tipo.get()
+        if tipo == "mask":
+            self.mostrar_imagem_no_label(mask)
+        elif tipo == "mask_clean":
+            self.mostrar_imagem_no_label(mask_clean)
+        elif tipo == "imagem_congelada":
+            self.mostrar_imagem_no_label(self.imagem_congelada)
+        else:
+            self.mostrar_imagem_no_label(img_resultado)
 
     def iniciar_video(self):
         if not self.running and not self.modo_estatico:
@@ -253,7 +260,10 @@ class PaginaVideo(tk.Frame):
     def mostrar_imagem_no_label(self, cv_image):
         """Função auxiliar para converter CV2(BGR) -> Tkinter e exibir"""
         # Converter BGR para RGB
-        rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+        if len(cv_image.shape) == 2:
+            rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_GRAY2RGB)
+        else:
+            rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         
         # Obtemos as dimensões originais da imagem
         h_orig, w_orig = rgb_image.shape[:2]
