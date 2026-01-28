@@ -19,7 +19,6 @@ class PaginaVideo(tk.Frame):
         
         # Variáveis de Controlo (Tkinter Variables)
         self.var_pecas_detectadas = tk.StringVar(value="0")
-        self.var_cor_space = tk.StringVar(value="RGB")
         self.var_forma = tk.StringVar(value="square")
         
         # --- LAYOUT PRINCIPAL (2 Colunas) ---
@@ -66,15 +65,38 @@ class PaginaVideo(tk.Frame):
         self.lbl_valor_pecas = tk.Label(self.frame_controls, textvariable=self.var_pecas_detectadas,
                                         bg="white", relief="sunken", font=("Arial", 14, "bold"), fg="blue")
         self.lbl_valor_pecas.pack(fill="x", pady=(0, 15))
+
+        # 3. Threshold Limiar
+        box_hsv_limiar_min = tk.LabelFrame(self.frame_controls, text="HSV limits", **style_box)
+        box_hsv_limiar_min.pack(fill="x", pady=5)
         
-        # 2. Espaço de Cor (HSV, Gray, RGB)
-        box_color = tk.LabelFrame(self.frame_controls, text="Color Space", **style_box)
-        box_color.pack(fill="x", pady=5, ipady=5)
+        self.slider_Hue_min = tk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", label="Min Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Hue_min.set(50)
+        self.slider_Hue_min.pack(fill="x", padx=5)
+
+        self.slider_Sat_min = tk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Sat_min.set(150)
+        self.slider_Sat_min.pack(fill="x", padx=5)
+
+        self.slider_Value_min = tk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Value_min.set(150)
+        self.slider_Value_min.pack(fill="x", padx=5)
+
+        box_hsv_limiar_max = tk.LabelFrame(self.frame_controls, text="HSV limits", **style_box)
+        box_hsv_limiar_max.pack(fill="x", pady=5)
         
-        tk.Radiobutton(box_color, text="HSV", variable=self.var_cor_space, value="HSV", bg=self.bg_color).pack(side="left", expand=True)
-        tk.Radiobutton(box_color, text="Gray", variable=self.var_cor_space, value="Gray", bg=self.bg_color).pack(side="left", expand=True)
-        tk.Radiobutton(box_color, text="RGB", variable=self.var_cor_space, value="RGB", bg=self.bg_color).pack(side="left", expand=True)
+        self.slider_Hue_max = tk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", label="Min Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Hue_max.set(50)
+        self.slider_Hue_max.pack(fill="x", padx=5)
         
+        self.slider_Sat_max = tk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Sat_max.set(150)
+        self.slider_Sat_max.pack(fill="x", padx=5)
+
+        self.slider_Value_max = tk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Value_max.set(150)
+        self.slider_Value_max.pack(fill="x", padx=5)
+
         # 3. Threshold Limiar
         box_threshold = tk.LabelFrame(self.frame_controls, text="Threshold Limiar", **style_box)
         box_threshold.pack(fill="x", pady=5)
@@ -168,12 +190,6 @@ class PaginaVideo(tk.Frame):
         if blur_val % 2 == 0: blur_val += 1 # Blur precisa de número ímpar
         if blur_val > 1:
             img_processar = cv2.GaussianBlur(img_processar, (blur_val, blur_val), 0)
-
-        # 3. Simulação de conversão de cores (apenas visual por enquanto, 
-        #    já que o ProcessImage espera BGR, mas podemos adaptar a lógica aqui)
-        cor_space = self.var_cor_space.get()
-        # Nota: O ProcessImage trabalha com BGR, então enviamos BGR, 
-        # mas poderíamos pré-tratar aqui se necessário.
         
         # 4. Instanciar Processador com parâmetros da GUI
         processor = ProcessImage(image=img_processar)
@@ -206,7 +222,7 @@ class PaginaVideo(tk.Frame):
             self.var_pecas_detectadas.set("0")
 
         # 6. Converter para mostrar no Tkinter
-        self.mostrar_imagem_no_label(img_resultado)
+        self.mostrar_imagem_no_label(gray)
 
     def iniciar_video(self):
         if not self.running and not self.modo_estatico:
