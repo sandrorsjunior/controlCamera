@@ -38,14 +38,49 @@ class PaginaVideo(tk.Frame):
         self.frame_video_area.pack(side="left", fill="both", expand=True, padx=50, pady=30)
         
         # Coluna Direita: Painel de Controlos
-        self.frame_controls = tk.Frame(self, bg=self.bg_color, width=350)
-        self.frame_controls.pack(side="right", fill="y", padx=10, pady=10)
+        self.container_controls = tk.Frame(self, bg=self.bg_color, width=380)
+        self.container_controls.pack(side="right", fill="y", padx=10, pady=10)
+        self.container_controls.pack_propagate(False) # Fixar largura
+
+        self.canvas_controls = tk.Canvas(self.container_controls, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar_controls = tk.Scrollbar(self.container_controls, orient="vertical", command=self.canvas_controls.yview)
+
+        # Frame interno (onde os widgets serão colocados)
+        self.frame_controls = tk.Frame(self.canvas_controls, bg=self.bg_color)
+        
+        # Configurar scrollregion quando o frame interno muda de tamanho
+        self.frame_controls.bind("<Configure>", lambda e: self.canvas_controls.configure(scrollregion=self.canvas_controls.bbox("all")))
+
+        self.window_controls = self.canvas_controls.create_window((0, 0), window=self.frame_controls, anchor="nw")
+        self.canvas_controls.configure(yscrollcommand=self.scrollbar_controls.set)
+
+        self.canvas_controls.pack(side="left", fill="both", expand=True)
+        self.scrollbar_controls.pack(side="right", fill="y")
+
+        # Ajustar largura do frame interno ao redimensionar canvas
+        self.canvas_controls.bind('<Configure>', self._on_canvas_configure)
+        
+        # Bind MouseWheel (Scroll com o rato)
+        self.container_controls.bind('<Enter>', self._bound_to_mousewheel)
+        self.container_controls.bind('<Leave>', self._unbound_to_mousewheel)
         
         # --- CONSTRUÇÃO DA ÁREA ESQUERDA ---
         self.setup_video_area()
         
         # --- CONSTRUÇÃO DA ÁREA DIREITA ---
         self.setup_control_panel()
+
+    def _on_canvas_configure(self, event):
+        self.canvas_controls.itemconfig(self.window_controls, width=event.width)
+
+    def _bound_to_mousewheel(self, event):
+        self.canvas_controls.bind_all("<MouseWheel>", self._on_mousewheel)
+
+    def _unbound_to_mousewheel(self, event):
+        self.canvas_controls.unbind_all("<MouseWheel>")
+
+    def _on_mousewheel(self, event):
+        self.canvas_controls.yview_scroll(int(-1*(event.delta/120)), "units")
 
     def setup_video_area(self):
         # 1. Label do Vídeo
