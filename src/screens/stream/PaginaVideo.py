@@ -34,7 +34,7 @@ class PaginaVideo(tk.Frame):
         # --- LAYOUT PRINCIPAL (2 Colunas) ---
         # Coluna Esquerda: Vídeo + Botões Ação
         self.frame_video_area = tk.Frame(self, bg=self.bg_color)
-        self.frame_video_area.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        self.frame_video_area.pack(side="left", fill="both", expand=True, padx=50, pady=30)
         
         # Coluna Direita: Painel de Controlos
         self.frame_controls = tk.Frame(self, bg=self.bg_color, width=350)
