@@ -1,0 +1,13 @@
+{
+    "url": "opc.tcp://localhost:4840",
+    "variables": [
+        [
+            4,
+            "SinalPython"
+        ],
+        [
+            4,
+            "sensor"
+        ]
+    ]
+}

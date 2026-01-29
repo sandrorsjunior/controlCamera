@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext
 import asyncio
 import threading
+import json
 from src.controller.PLCController import PLCController
 
 class PaginaFile(ttk.Frame):
@@ -48,14 +49,18 @@ class PaginaFile(ttk.Frame):
         ttk.Button(input_frame, text="Remover", command=self.delete_variable).pack(side="left", padx=5)
 
         # Tabela (Treeview)
+        # Container para a tabela e scrollbar para organizar o layout
+        table_frame = ttk.Frame(manage_frame)
+        table_frame.pack(fill="both", expand=True, padx=5, pady=5)
+
         columns = ("ns", "name")
-        self.tree = ttk.Treeview(manage_frame, columns=columns, show="headings", height=5)
+        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=5)
         self.tree.heading("ns", text="NS")
         self.tree.heading("name", text="Nome da Variável")
         self.tree.column("ns", width=50, anchor="center")
         self.tree.column("name", width=300, anchor="w")
         
-        scrollbar = ttk.Scrollbar(manage_frame, orient="vertical", command=self.tree.yview)
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         
         self.tree.pack(side="left", fill="both", expand=True)
@@ -63,6 +68,9 @@ class PaginaFile(ttk.Frame):
         
         # Adicionar variável padrão
         self.tree.insert("", "end", values=("4", "SinalPython"))
+
+        # Botão Salvar Configuração
+        ttk.Button(manage_frame, text="Salvar Configuração (JSON)", command=self.save_configuration).pack(fill="x", padx=5, pady=(0, 5))
 
         # --- Frame de Ação ---
         action_frame = ttk.LabelFrame(self, text="Comandos", padding="15")
@@ -96,6 +104,25 @@ class PaginaFile(ttk.Frame):
         selected_item = self.tree.selection()
         if selected_item:
             self.tree.delete(selected_item)
+
+    def save_configuration(self):
+        """Salva a URL e as variáveis num ficheiro JSON"""
+        data = {
+            "url": self.entry_url.get(),
+            "variables": []
+        }
+        
+        # Percorre todos os itens da tabela
+        for item_id in self.tree.get_children():
+            item = self.tree.item(item_id)
+            data["variables"].append(item['values'])
+            
+        try:
+            with open("plc_config.json", "w") as f:
+                json.dump(data, f, indent=4)
+            self.log("Configuração salva com sucesso em 'plc_config.json'.")
+        except Exception as e:
+            self.log(f"Erro ao salvar configuração: {e}")
 
     def update_chk_text(self):
         """Atualiza o texto do checkbox visualmente"""
