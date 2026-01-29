@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
+import json
+import threading
+import asyncio
 from .util.ProcessImage import ProcessImage
+from src.controller.PLCController import PLCController
 
 
 
@@ -14,6 +18,8 @@ class VideoController:
         self.cap = cap    # Objeto VideoCapture do OpenCV
         
         # Variáveis de Estado
+        self.plc_controller = PLCController()
+        self.sending_plc = False # Flag para evitar envios sobrepostos
         self.running = False
         self.imagem_congelada = None 
         self.modo_estatico = False
@@ -90,6 +96,13 @@ class VideoController:
         contours, hierarchy = processor.get_contours(mask_clean)
         
         if contours:
+            # Verifica se existe um círculo azul entre os contornos encontrados
+            if not self.sending_plc:
+                for cnt in contours:
+                    if self.check_blue_circle(cnt, img_processar):
+                        threading.Thread(target=self.trigger_plc_signals).start()
+                        break
+
             img_resultado = processor.objects_detection(
                 contours, 
                 tolerance=500,
@@ -107,3 +120,56 @@ class VideoController:
 
         # Decide qual imagem mostrar baseado na seleção da View
         self.view.atualizar_visualizacao_final(img_resultado, mask, mask_clean, self.imagem_congelada)
+
+    def check_blue_circle(self, contour, image):
+        """Verifica se o contorno é um círculo e se a cor média é azul."""
+        # 1. Verificar Circularidade
+        perimeter = cv2.arcLength(contour, True)
+        if perimeter == 0: return False
+        
+        area = cv2.contourArea(contour)
+        if area < 500: return False # Ignorar ruído muito pequeno
+        
+        # Fórmula da circularidade: 4 * pi * Area / Perimetro^2
+        # Círculo perfeito = 1.0. Aceitamos > 0.7
+        circularity = 4 * np.pi * area / (perimeter ** 2)
+        if circularity < 0.7:
+            return False
+
+        # 2. Verificar Cor (Azul)
+        # Criar máscara para o contorno específico
+        mask = np.zeros(image.shape[:2], dtype=np.uint8)
+        cv2.drawContours(mask, [contour], -1, 255, -1)
+        
+        # Calcular cor média dentro do contorno (BGR)
+        mean_val = cv2.mean(image, mask=mask)[:3]
+        
+        # Converter BGR médio para HSV
+        mean_hsv = cv2.cvtColor(np.uint8([[mean_val]]), cv2.COLOR_BGR2HSV)[0][0]
+        h, s, v = mean_hsv
+        
+        # Faixa de Azul no OpenCV (H: 0-180). Azul é aprox 120.
+        # Definindo intervalo: H=[100, 140], S>50, V>50
+        return 100 <= h <= 140 and s > 50 and v > 50
+
+    def trigger_plc_signals(self):
+        """Lê a configuração e envia sinal para o PLC."""
+        self.sending_plc = True
+        try:
+            with open("plc_config.json", "r") as f:
+                config = json.load(f)
+            
+            url = config.get("url")
+            variables = config.get("variables", [])
+            
+            # Callback simples para log (pode ser melhorado para usar o log da UI)
+            log_cb = lambda msg: print(f"[PLC Auto]: {msg}")
+            
+            for ns, name in variables:
+                # Envia True para as variáveis configuradas
+                asyncio.run(self.plc_controller.connect_and_send(url, str(ns), name, True, log_cb))
+                
+        except Exception as e:
+            print(f"Erro ao enviar para PLC: {e}")
+        finally:
+            self.sending_plc = False

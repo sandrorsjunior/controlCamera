@@ -1,13 +1,9 @@
 {
-    "url": "opc.tcp://localhostnew.1:4840",
+    "url": "opc.tcp://localhost:4840",
     "variables": [
         [
             4,
             "SinalPython"
-        ],
-        [
-            4,
-            "mai1"
         ]
     ],
     "profiles": [
@@ -29,6 +25,27 @@
                 150.0
             ],
             "blur": 1.0,
+            "contour": true,
+            "segmentation_type": "by_color"
+        },
+        {
+            "profile": "lencil",
+            "description": "test lapis",
+            "hsv_min": [
+                27.625,
+                29.75,
+                214.625
+            ],
+            "hsv_max": [
+                104.125,
+                255.0,
+                255.0
+            ],
+            "threshold": [
+                50.0,
+                150.0
+            ],
+            "blur": 5.355555555555556,
             "contour": true,
             "segmentation_type": "by_color"
         }
