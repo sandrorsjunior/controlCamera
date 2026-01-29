@@ -107,10 +107,15 @@ class PaginaFile(ttk.Frame):
 
     def save_configuration(self):
         """Salva a URL e as variáveis num ficheiro JSON"""
-        data = {
-            "url": self.entry_url.get(),
-            "variables": []
-        }
+        data = {}
+        try:
+            with open("plc_config.json", "r") as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = {}
+
+        data["url"] = self.entry_url.get()
+        data["variables"] = []
         
         # Percorre todos os itens da tabela
         for item_id in self.tree.get_children():
