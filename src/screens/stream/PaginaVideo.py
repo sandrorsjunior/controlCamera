@@ -1,7 +1,7 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import cv2
-from controller.VideoController import VideoController
+from src.controller.VideoController import VideoController
 
 
 class PaginaVideo(tk.Frame):
