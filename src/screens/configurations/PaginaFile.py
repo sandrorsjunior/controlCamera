@@ -17,27 +17,52 @@ class PaginaFile(ttk.Frame):
         style.configure("TButton", font=("Helvetica", 10))
         style.configure("TLabel", font=("Helvetica", 10))
         
-        # --- Frame de Configuração ---
-        config_frame = ttk.LabelFrame(self, text="Configurações de Conexão", padding="15")
-        config_frame.pack(fill="x", padx=10, pady=10)
+        # --- Frame de Configuração (URL) ---
+        config_frame = ttk.LabelFrame(self, text="Configurações de Conexão", padding="10")
+        config_frame.pack(fill="x", padx=10, pady=5)
 
-        # URL
-        ttk.Label(config_frame, text="URL do Servidor:").grid(row=0, column=0, sticky="w", pady=5)
+        ttk.Label(config_frame, text="URL do Servidor:").pack(side="left", padx=5)
         self.entry_url = ttk.Entry(config_frame, width=40)
         self.entry_url.insert(0, "opc.tcp://192.168.250.1:4840")
-        self.entry_url.grid(row=0, column=1, padx=5, pady=5)
+        self.entry_url.pack(side="left", fill="x", expand=True, padx=5)
 
-        # Namespace (Index)
-        ttk.Label(config_frame, text="Namespace Index (ns):").grid(row=1, column=0, sticky="w", pady=5)
-        self.entry_ns = ttk.Entry(config_frame, width=10)
+        # --- Frame de Gestão de Variáveis ---
+        manage_frame = ttk.LabelFrame(self, text="Gestão de Variáveis", padding="10")
+        manage_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+        # Inputs para nova variável
+        input_frame = ttk.Frame(manage_frame)
+        input_frame.pack(fill="x", pady=(0, 5))
+
+        ttk.Label(input_frame, text="NS:").pack(side="left")
+        self.entry_ns = ttk.Entry(input_frame, width=5)
         self.entry_ns.insert(0, "4")
-        self.entry_ns.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+        self.entry_ns.pack(side="left", padx=5)
 
-        # Nome da Variável (String ID)
-        ttk.Label(config_frame, text="Nome da Variável (s):").grid(row=2, column=0, sticky="w", pady=5)
-        self.entry_var = ttk.Entry(config_frame, width=30)
+        ttk.Label(input_frame, text="Nome (s):").pack(side="left")
+        self.entry_var = ttk.Entry(input_frame, width=20)
         self.entry_var.insert(0, "SinalPython")
-        self.entry_var.grid(row=2, column=1, sticky="w", padx=5, pady=5)
+        self.entry_var.pack(side="left", padx=5, fill="x", expand=True)
+
+        ttk.Button(input_frame, text="Adicionar", command=self.add_variable).pack(side="left", padx=5)
+        ttk.Button(input_frame, text="Remover", command=self.delete_variable).pack(side="left", padx=5)
+
+        # Tabela (Treeview)
+        columns = ("ns", "name")
+        self.tree = ttk.Treeview(manage_frame, columns=columns, show="headings", height=5)
+        self.tree.heading("ns", text="NS")
+        self.tree.heading("name", text="Nome da Variável")
+        self.tree.column("ns", width=50, anchor="center")
+        self.tree.column("name", width=300, anchor="w")
+        
+        scrollbar = ttk.Scrollbar(manage_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.tree.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Adicionar variável padrão
+        self.tree.insert("", "end", values=("4", "SinalPython"))
 
         # --- Frame de Ação ---
         action_frame = ttk.LabelFrame(self, text="Comandos", padding="15")
@@ -49,15 +74,28 @@ class PaginaFile(ttk.Frame):
         self.chk_value.pack(anchor="w", pady=5)
 
         # Botão de Enviar
-        self.btn_send = ttk.Button(action_frame, text="Enviar Dados para o PLC", command=self.start_async_thread)
+        self.btn_send = ttk.Button(action_frame, text="Enviar para Variável Selecionada", command=self.start_async_thread)
         self.btn_send.pack(fill="x", pady=10)
 
         # --- Área de Log ---
         log_frame = ttk.LabelFrame(self, text="Logs de Execução", padding="10")
         log_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.log_area = scrolledtext.ScrolledText(log_frame, height=10, state='disabled', font=("Consolas", 9))
+        self.log_area = scrolledtext.ScrolledText(log_frame, height=8, state='disabled', font=("Consolas", 9))
         self.log_area.pack(fill="both", expand=True)
+
+    def add_variable(self):
+        ns = self.entry_ns.get()
+        name = self.entry_var.get()
+        if ns and name:
+            self.tree.insert("", "end", values=(ns, name))
+            # Opcional: Limpar campo nome após adicionar
+            # self.entry_var.delete(0, tk.END)
+
+    def delete_variable(self):
+        selected_item = self.tree.selection()
+        if selected_item:
+            self.tree.delete(selected_item)
 
     def update_chk_text(self):
         """Atualiza o texto do checkbox visualmente"""
@@ -80,9 +118,17 @@ class PaginaFile(ttk.Frame):
         
         # Pega os valores da GUI
         url = self.entry_url.get()
-        ns = self.entry_ns.get()
-        var_name = self.entry_var.get()
         valor_booleano = self.bool_var.get()
+
+        # Pega a variável selecionada na tabela
+        selected = self.tree.selection()
+        if not selected:
+            self.log("ERRO: Nenhuma variável selecionada na tabela.")
+            self.btn_send.config(state="normal")
+            return
+        
+        item = self.tree.item(selected[0])
+        ns, var_name = item['values']
 
         # Cria e inicia a thread
         thread = threading.Thread(target=self.run_async_task, args=(url, ns, var_name, valor_booleano))
