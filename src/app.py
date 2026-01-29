@@ -12,7 +12,7 @@ class AplicacaoApp(tk.Tk):
         
         # Configurações da Janela Principal
         self.title("Sistema de Video Monitorização")
-        self.geometry("900x600")
+        self.geometry("1000x600")
         
         # Inicializar a captura de vídeo (0 é geralmente a webcam padrão)
         self.cap = cv2.VideoCapture(0)

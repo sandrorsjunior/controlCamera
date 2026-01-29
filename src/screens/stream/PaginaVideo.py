@@ -11,16 +11,6 @@ class PaginaVideo(tk.Frame):
         self.controller = controller
         self.bg_color = "#e6e6e6"
         self.configure(bg=self.bg_color)
-
-        self.params = {
-            "hsv_limiar_min": None,
-            "hsv_limiar_max": None,
-            "threshold": None,
-            "contour_config": {
-                "draw": True
-            },
-            "blur": 1
-        }
         
         # Variáveis de Estado
         self.running = False
@@ -31,6 +21,7 @@ class PaginaVideo(tk.Frame):
         self.var_pecas_detectadas = tk.StringVar(value="0")
         self.var_forma = tk.StringVar(value="square")
         self.var_imagem_tipo = tk.StringVar(value="img_resultado")
+        self.var_type_of_segmentation = tk.StringVar(value="by_color")
         
         # --- LAYOUT PRINCIPAL (2 Colunas) ---
         # Coluna Esquerda: Vídeo + Botões Ação
@@ -38,7 +29,7 @@ class PaginaVideo(tk.Frame):
         self.frame_video_area.pack(side="left", fill="both", expand=True, padx=50, pady=30)
         
         # Coluna Direita: Painel de Controlos
-        self.container_controls = tk.Frame(self, bg=self.bg_color, width=380)
+        self.container_controls = tk.Frame(self, bg=self.bg_color, width=450)
         self.container_controls.pack(side="right", fill="y", padx=10, pady=10)
         self.container_controls.pack_propagate(False) # Fixar largura
 
@@ -143,7 +134,17 @@ class PaginaVideo(tk.Frame):
         self.slider_Value_max.set(150)
         self.slider_Value_max.pack(fill="x", padx=5)
 
+        # 3. Threshold Limiar
+        box_threshold = tk.LabelFrame(self.frame_controls, text="THRESHOLD limits MIN", **style_box)
+        box_threshold.pack(fill="x", pady=5)
         
+        self.slider_threshold_min = tk.Scale(box_threshold, from_=0, to=255, orient="horizontal", label="Min Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_threshold_min.set(50)
+        self.slider_threshold_min.pack(fill="x", padx=5)
+
+        self.slider_threshold_max = tk.Scale(box_threshold, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_threshold_max.set(150)
+        self.slider_threshold_max.pack(fill="x", padx=5)
 
         # 4. Contour & Blur Config (Lado a Lado)
         frame_configs = tk.Frame(self.frame_controls, bg=self.bg_color)
@@ -160,6 +161,14 @@ class PaginaVideo(tk.Frame):
         self.slider_blur.set(1)
         self.slider_blur.pack(pady=5, padx=5)
 
+                # 6. View Type Selection
+        type_of_segmentation = tk.LabelFrame(self.frame_controls, text="Type of Segmentation", **style_box)
+        type_of_segmentation.pack(fill="x", pady=5)
+        tk.Radiobutton(type_of_segmentation, text="By Color", variable=self.var_type_of_segmentation, value="by_color", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        tk.Radiobutton(type_of_segmentation, text="By Limiar", variable=self.var_type_of_segmentation, value="by_limiar", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        tk.Radiobutton(type_of_segmentation, text="By Shape", variable=self.var_type_of_segmentation, value="by_shape", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+
+
         # 5. Profile & Description
         # CORREÇÃO AQUI: mt=10 removido, usado pady=(10, 0)
         tk.Label(self.frame_controls, text="Profile:", bg=self.bg_color, font=("Arial", 9, "bold")).pack(anchor="w", pady=(10, 0))
@@ -169,6 +178,7 @@ class PaginaVideo(tk.Frame):
         tk.Label(self.frame_controls, text="Description:", bg=self.bg_color, font=("Arial", 9, "bold")).pack(anchor="w")
         self.entry_desc = tk.Entry(self.frame_controls)
         self.entry_desc.pack(fill="x", pady=(0, 10))
+
         
         # 6. View Type Selection
         box_view = tk.LabelFrame(self.frame_controls, text="View Type", **style_box)
@@ -178,24 +188,6 @@ class PaginaVideo(tk.Frame):
         tk.Radiobutton(box_view, text="Mask Raw", variable=self.var_imagem_tipo, value="mask", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
         tk.Radiobutton(box_view, text="Original Frozen", variable=self.var_imagem_tipo, value="imagem_congelada", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
 
-        # 7. Forms Selection
-        box_forms = tk.LabelFrame(self.frame_controls, text="Forms", **style_box)
-        box_forms.pack(fill="x", pady=5)
-        
-        tk.Radiobutton(box_forms, text="Square", variable=self.var_forma, value="square", bg=self.bg_color).pack(anchor="w", padx=10)
-        tk.Radiobutton(box_forms, text="Triangle", variable=self.var_forma, value="triangle", bg=self.bg_color).pack(anchor="w", padx=10)
-        tk.Radiobutton(box_forms, text="Circle", variable=self.var_forma, value="circle", bg=self.bg_color).pack(anchor="w", padx=10)
-        
-        # 7. Custom Input
-        box_custom = tk.LabelFrame(self.frame_controls, text="Custom", **style_box)
-        box_custom.pack(fill="x", pady=5)
-        
-        frame_custom_inner = tk.Frame(box_custom, bg=self.bg_color)
-        frame_custom_inner.pack(fill="x", padx=5, pady=5)
-        
-        tk.Radiobutton(frame_custom_inner, variable=self.var_forma, value="custom", bg=self.bg_color).pack(side="left")
-        self.entry_custom = tk.Entry(frame_custom_inner)
-        self.entry_custom.pack(side="left", fill="x", expand=True, padx=5)
 
     # --- LÓGICA DE VÍDEO E EVENTOS ---
 
@@ -222,12 +214,17 @@ class PaginaVideo(tk.Frame):
         if self.modo_estatico and self.imagem_congelada is not None:
             self.atualizar_processamento()
 
-    def atualizar_processamento(self):
+    def atualizar_processamento(self, image=None):
         """Aplica filtros e deteção na imagem congelada."""
-        if self.imagem_congelada is None: return
+        if self.imagem_congelada is None and image is None:
+            return
+        elif image is not None:
+            img_processar = image
+        else:
+            # 1. Obter Imagem Base
+            img_processar = self.imagem_congelada.copy()
 
-        # 1. Obter Imagem Base
-        img_processar = self.imagem_congelada.copy()
+        
         
         # 2. Aplicar Blur (Se configurado)
         blur_val = int(self.slider_blur.get())
@@ -240,8 +237,11 @@ class PaginaVideo(tk.Frame):
 
         upper,lower = np.array([(self.slider_Hue_min.get(), self.slider_Sat_min.get(), self.slider_Value_min.get()),
                                  (self.slider_Hue_max.get(), self.slider_Sat_max.get(), self.slider_Value_max.get())])
-        print(lower, upper)
-        mask = processor.create_mask_by_HSV(lower, upper)
+        if( self.var_type_of_segmentation.get() == "by_color"):
+            mask = processor.create_mask_by_HSV(lower, upper)
+        elif( self.var_type_of_segmentation.get() == "by_limiar"):
+            mask = processor.create_mask_by_threshold(self.slider_threshold_min.get(), self.slider_threshold_max.get())
+        
         mask_clean = processor.remove_noise(mask)
             # 3. Obtém contornos e hierarquia
         contours, hierarchy = processor.get_contours_hierarchy(mask_clean)
@@ -290,6 +290,7 @@ class PaginaVideo(tk.Frame):
         if ret:
             self.mostrar_imagem_no_label(frame)
         
+        self.atualizar_processamento(frame)
         self.after(15, self.loop_video)
 
     def mostrar_imagem_no_label(self, cv_image):

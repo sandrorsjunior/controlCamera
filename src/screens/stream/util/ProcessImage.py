@@ -94,6 +94,13 @@ class ProcessImage:
         img_hsv = self.convert_to_hsv()
         mask = cv.inRange(img_hsv, lower_bound, upper_bound)
         return mask
+
+    def create_mask_by_threshold(self, th_min, th_max):
+        # Converte a imagem para escala de cinza
+        gray = cv.cvtColor(self.img_original, cv.COLOR_BGR2GRAY)
+        # Aplica limiarização para criar uma máscara binária
+        _, mask = cv.threshold(gray, th_min, th_max, cv.THRESH_BINARY)
+        return mask
     
     def remove_noise(self, mask, erode_kernel_size=(6,6), dilate_kernel_size=(3,3)):
         # Cria kernels para as operações morfológicas
