@@ -84,6 +84,27 @@ class PaginaVideo(ttk.Frame):
         btn_clean = ttk.Button(frame_botoes, text="CLEAN IMAGE", command=self.video_controller.clean_image)
         btn_clean.pack(side="left", fill="x", expand=True, padx=5)
 
+    def create_labeled_slider(self, parent, label_text, from_, to, initial):
+        """Cria um slider com label de texto e valor numérico ao lado."""
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", padx=5, pady=2)
+        
+        ttk.Label(frame, text=label_text, width=6).pack(side="left")
+        
+        var_val = tk.StringVar(value=f"{int(initial)}")
+        
+        def update_val(v):
+            var_val.set(f"{float(v):.0f}")
+            self.ao_mexer_slider()
+
+        slider = ttk.Scale(frame, from_=from_, to=to, orient="horizontal", command=update_val)
+        slider.set(initial)
+        slider.pack(side="left", fill="x", expand=True, padx=5)
+        
+        ttk.Label(frame, textvariable=var_val, width=4).pack(side="right")
+        
+        return slider
+
     def setup_control_panel(self):
         # Estilo para LabelFrames
         # ttk usa estilos nativos, removemos o dicionário style_box que usava opções do tk
@@ -104,44 +125,23 @@ class PaginaVideo(ttk.Frame):
         box_hsv_limiar_min = ttk.LabelFrame(self.frame_controls, text="HSV limits MIN")
         box_hsv_limiar_min.pack(fill="x", pady=5)
         
-        self.slider_Hue_min = ttk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
-        self.slider_Hue_min.set(50)
-        self.slider_Hue_min.pack(fill="x", padx=5)
-
-        self.slider_Sat_min = ttk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
-        self.slider_Sat_min.set(150)
-        self.slider_Sat_min.pack(fill="x", padx=5)
-
-        self.slider_Value_min = ttk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
-        self.slider_Value_min.set(150)
-        self.slider_Value_min.pack(fill="x", padx=5)
+        self.slider_Hue_min = self.create_labeled_slider(box_hsv_limiar_min, "Hue", 0, 255, 50)
+        self.slider_Sat_min = self.create_labeled_slider(box_hsv_limiar_min, "Sat", 0, 255, 150)
+        self.slider_Value_min = self.create_labeled_slider(box_hsv_limiar_min, "Val", 0, 255, 150)
 
         box_hsv_limiar_max = ttk.LabelFrame(self.frame_controls, text="HSV limits MAX")
         box_hsv_limiar_max.pack(fill="x", pady=5)
         
-        self.slider_Hue_max = ttk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
-        self.slider_Hue_max.set(50)
-        self.slider_Hue_max.pack(fill="x", padx=5)
-        
-        self.slider_Sat_max = ttk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
-        self.slider_Sat_max.set(150)
-        self.slider_Sat_max.pack(fill="x", padx=5)
-
-        self.slider_Value_max = ttk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
-        self.slider_Value_max.set(150)
-        self.slider_Value_max.pack(fill="x", padx=5)
+        self.slider_Hue_max = self.create_labeled_slider(box_hsv_limiar_max, "Hue", 0, 255, 50)
+        self.slider_Sat_max = self.create_labeled_slider(box_hsv_limiar_max, "Sat", 0, 255, 150)
+        self.slider_Value_max = self.create_labeled_slider(box_hsv_limiar_max, "Val", 0, 255, 150)
 
         # 3. Threshold Limiar
         box_threshold = ttk.LabelFrame(self.frame_controls, text="THRESHOLD limits MIN")
         box_threshold.pack(fill="x", pady=5)
         
-        self.slider_threshold_min = ttk.Scale(box_threshold, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
-        self.slider_threshold_min.set(50)
-        self.slider_threshold_min.pack(fill="x", padx=5)
-
-        self.slider_threshold_max = ttk.Scale(box_threshold, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
-        self.slider_threshold_max.set(150)
-        self.slider_threshold_max.pack(fill="x", padx=5)
+        self.slider_threshold_min = self.create_labeled_slider(box_threshold, "Min", 0, 255, 50)
+        self.slider_threshold_max = self.create_labeled_slider(box_threshold, "Max", 0, 255, 150)
 
         # 4. Contour & Blur Config (Lado a Lado)
         frame_configs = ttk.Frame(self.frame_controls)
@@ -154,9 +154,7 @@ class PaginaVideo(ttk.Frame):
 
         box_blur = ttk.LabelFrame(frame_configs, text="Blur Config")
         box_blur.pack(side="left", fill="both", expand=True, padx=(2, 0))
-        self.slider_blur = ttk.Scale(box_blur, from_=1, to=15, orient="horizontal", command=self.ao_mexer_slider)
-        self.slider_blur.set(1)
-        self.slider_blur.pack(pady=5, padx=5)
+        self.slider_blur = self.create_labeled_slider(box_blur, "Blur", 1, 15, 1)
 
                 # 6. View Type Selection
         type_of_segmentation = ttk.LabelFrame(self.frame_controls, text="Type of Segmentation")
