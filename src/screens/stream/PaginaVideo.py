@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 import cv2
+import json
+import os
 from src.controller.VideoController import VideoController
 
 
@@ -182,6 +184,45 @@ class PaginaVideo(ttk.Frame):
         ttk.Radiobutton(box_view, text="Mask Clean", variable=self.var_imagem_tipo, value="mask_clean", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
         ttk.Radiobutton(box_view, text="Mask Raw", variable=self.var_imagem_tipo, value="mask", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
         ttk.Radiobutton(box_view, text="Original Frozen", variable=self.var_imagem_tipo, value="imagem_congelada", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+
+        # Botão para salvar configuração
+        ttk.Button(self.frame_controls, text="Salvar Configuração", command=self.save_configuration).pack(fill="x", pady=10)
+
+    def save_configuration(self):
+        """Salva as configurações atuais num ficheiro JSON, adicionando um novo perfil."""
+        profile_name = self.entry_profile.get()
+        if not profile_name:
+            print("Erro: O campo Profile é obrigatório.")
+            return
+
+        new_data = {
+            "profile": profile_name,
+            "description": self.entry_desc.get(),
+            "hsv_min": [self.slider_Hue_min.get(), self.slider_Sat_min.get(), self.slider_Value_min.get()],
+            "hsv_max": [self.slider_Hue_max.get(), self.slider_Sat_max.get(), self.slider_Value_max.get()],
+            "threshold": [self.slider_threshold_min.get(), self.slider_threshold_max.get()],
+            "blur": self.slider_blur.get(),
+            "contour": self.check_contour.get(),
+            "segmentation_type": self.var_type_of_segmentation.get()
+        }
+
+        file_path = "plc_config.json"
+        data = {}
+
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, "r") as f:
+                    data = json.load(f)
+            except Exception:
+                data = {}
+
+        if "profiles" not in data:
+            data["profiles"] = []
+
+        data["profiles"].append(new_data)
+
+        with open(file_path, "w") as f:
+            json.dump(data, f, indent=4)
 
 
     # --- LÓGICA DE VÍDEO E EVENTOS ---
