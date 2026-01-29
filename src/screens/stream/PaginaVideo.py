@@ -1,9 +1,8 @@
 import tkinter as tk
-from tkinter import ttk
 from PIL import Image, ImageTk
 import cv2
-import numpy as np
-from .util.ProcessImage import ProcessImage
+from controller.VideoController import VideoController
+
 
 class PaginaVideo(tk.Frame):
     def __init__(self, parent, controller):
@@ -12,10 +11,8 @@ class PaginaVideo(tk.Frame):
         self.bg_color = "#e6e6e6"
         self.configure(bg=self.bg_color)
         
-        # Variáveis de Estado
-        self.running = False
-        self.imagem_congelada = None # Guarda a imagem quando clicamos em "Get Image"
-        self.modo_estatico = False   # True se estivermos a analisar uma imagem parada
+        # Instancia o controlador de vídeo
+        self.video_controller = VideoController(self, self.controller.cap)
         
         # Variáveis de Controlo (Tkinter Variables)
         self.var_pecas_detectadas = tk.StringVar(value="0")
@@ -82,11 +79,11 @@ class PaginaVideo(tk.Frame):
         frame_botoes = tk.Frame(self.frame_video_area, bg=self.bg_color)
         frame_botoes.pack(fill="x")
         
-        btn_get = tk.Button(frame_botoes, text="GET IMAGE", command=self.get_image,
+        btn_get = tk.Button(frame_botoes, text="GET IMAGE", command=self.video_controller.get_image,
                             bg="#27ae60", fg="white", font=("Arial", 10, "bold"), height=2)
         btn_get.pack(side="left", fill="x", expand=True, padx=5)
         
-        btn_clean = tk.Button(frame_botoes, text="CLEAN IMAGE", command=self.clean_image,
+        btn_clean = tk.Button(frame_botoes, text="CLEAN IMAGE", command=self.video_controller.clean_image,
                               bg="#c0392b", fg="white", font=("Arial", 10, "bold"), height=2)
         btn_clean.pack(side="left", fill="x", expand=True, padx=5)
 
@@ -191,107 +188,33 @@ class PaginaVideo(tk.Frame):
 
     # --- LÓGICA DE VÍDEO E EVENTOS ---
 
-    def get_image(self):
-        """Captura a frame atual, para o vídeo e processa."""
-        if self.controller.cap.isOpened():
-            ret, frame = self.controller.cap.read()
-            if ret:
-                self.imagem_congelada = frame
-                self.modo_estatico = True
-                self.running = False # Para o loop de vídeo
-                self.atualizar_processamento() # Processa a imagem congelada
-
-    def clean_image(self):
-        """Limpa a imagem congelada e retoma o vídeo."""
-        self.modo_estatico = False
-        self.imagem_congelada = None
-        self.var_pecas_detectadas.set("0")
-        self.lbl_video.configure(image="") # Limpa visualmente
-        self.iniciar_video() # Reinicia o loop
-
     def ao_mexer_slider(self, _=None):
         """Chamado quando arrastamos um slider. Só atualiza se tivermos uma imagem capturada."""
-        if self.modo_estatico and self.imagem_congelada is not None:
-            self.atualizar_processamento()
+        if self.video_controller.modo_estatico and self.video_controller.imagem_congelada is not None:
+            self.video_controller.atualizar_processamento()
 
-    def atualizar_processamento(self, image=None):
-        """Aplica filtros e deteção na imagem congelada."""
-        if self.imagem_congelada is None and image is None:
-            return
-        elif image is not None:
-            img_processar = image
-        else:
-            # 1. Obter Imagem Base
-            img_processar = self.imagem_congelada.copy()
+    def iniciar_video(self):
+        """Wrapper para manter compatibilidade com app.py"""
+        self.video_controller.iniciar()
 
-        
-        
-        # 2. Aplicar Blur (Se configurado)
-        blur_val = int(self.slider_blur.get())
-        if blur_val % 2 == 0: blur_val += 1 # Blur precisa de número ímpar
-        if blur_val > 1:
-            img_processar = cv2.GaussianBlur(img_processar, (blur_val, blur_val), 0)
-        
-        # 4. Instanciar Processador com parâmetros da GUI
-        processor = ProcessImage(image=img_processar)
+    def parar_video(self):
+        """Wrapper para manter compatibilidade com app.py"""
+        self.video_controller.parar()
 
-        upper,lower = np.array([(self.slider_Hue_min.get(), self.slider_Sat_min.get(), self.slider_Value_min.get()),
-                                 (self.slider_Hue_max.get(), self.slider_Sat_max.get(), self.slider_Value_max.get())])
-        if( self.var_type_of_segmentation.get() == "by_color"):
-            mask = processor.create_mask_by_HSV(lower, upper)
-        elif( self.var_type_of_segmentation.get() == "by_limiar"):
-            mask = processor.create_mask_by_threshold(self.slider_threshold_min.get(), self.slider_threshold_max.get())
-        
-        mask_clean = processor.remove_noise(mask)
-            # 3. Obtém contornos e hierarquia
-        contours, hierarchy = processor.get_contours_hierarchy(mask_clean)
-        
-        if contours:
-            img_resultado = processor.objects_detection(
-                contours, 
-                tolerance=500, # Área mínima fixa ou poderia ser slider
-                show_contours=self.check_contour.get(),
-                central_point=True,
-                show_color=True,
-                hierarchy=hierarchy,
-                show_holes=True
-            )
-            # Atualizar label de contagem
-            stats = processor.get_statistics()
-            self.var_pecas_detectadas.set(str(stats['total_objects']))
-        else:
-            img_resultado = img_processar
-            self.var_pecas_detectadas.set("0")
-
-        # 6. Converter para mostrar no Tkinter
+    def atualizar_visualizacao_final(self, img_resultado, mask, mask_clean, imagem_congelada):
+        """
+        Recebe as imagens processadas do Controller e decide qual mostrar
+        baseado no RadioButton selecionado na GUI.
+        """
         tipo = self.var_imagem_tipo.get()
         if tipo == "mask":
             self.mostrar_imagem_no_label(mask)
         elif tipo == "mask_clean":
             self.mostrar_imagem_no_label(mask_clean)
-        elif tipo == "imagem_congelada":
-            self.mostrar_imagem_no_label(self.imagem_congelada)
+        elif tipo == "imagem_congelada" and imagem_congelada is not None:
+            self.mostrar_imagem_no_label(imagem_congelada)
         else:
             self.mostrar_imagem_no_label(img_resultado)
-
-    def iniciar_video(self):
-        if not self.running and not self.modo_estatico:
-            self.running = True
-            self.loop_video()
-
-    def parar_video(self):
-        self.running = False
-
-    def loop_video(self):
-        if not self.winfo_exists() or not self.running or self.modo_estatico:
-            return
-
-        ret, frame = self.controller.cap.read()
-        if ret:
-            self.mostrar_imagem_no_label(frame)
-        
-        self.atualizar_processamento(frame)
-        self.after(15, self.loop_video)
 
     def mostrar_imagem_no_label(self, cv_image):
         """Função auxiliar para converter CV2(BGR) -> Tkinter e exibir"""

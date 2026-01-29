@@ -1,9 +1,9 @@
 import tkinter as tk
 import cv2
 
-from screens.stream.PaginaVideo import PaginaVideo
-from screens.ImageConfigurations.PaginaFuntions import PaginaFunctions
-from screens.configurations.PaginaFile import PaginaFile
+from src.screens.stream.PaginaVideo import PaginaVideo
+from src.screens.ImageConfigurations.PaginaFuntions import PaginaFunctions
+from src.screens.configurations.PaginaFile import PaginaFile
 
 
 class AplicacaoApp(tk.Tk):

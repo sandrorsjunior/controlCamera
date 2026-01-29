@@ -1,4 +1,4 @@
-from app import AplicacaoApp
+from src.app import AplicacaoApp
 
 if __name__ == "__main__":
     app = AplicacaoApp()
