@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 import cv2
 
 from src.screens.stream.PaginaVideo import PaginaVideo
@@ -18,7 +19,7 @@ class AplicacaoApp(tk.Tk):
         self.cap = cv2.VideoCapture(0)
         
         # Contentor principal onde as "janelas" (frames) serão mostradas
-        self.container = tk.Frame(self)
+        self.container = ttk.Frame(self)
         self.container.pack(side="top", fill="both", expand=True)
         self.container.grid_rowconfigure(0, weight=1)
         self.container.grid_columnconfigure(0, weight=1)

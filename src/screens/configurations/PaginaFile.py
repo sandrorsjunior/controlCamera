@@ -4,7 +4,7 @@ import asyncio
 import threading
 from src.controller.PLCController import PLCController
 
-class PaginaFile(tk.Frame):
+class PaginaFile(ttk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller

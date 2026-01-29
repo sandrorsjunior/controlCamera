@@ -1,15 +1,14 @@
 import tkinter as tk
+from tkinter import ttk
 from PIL import Image, ImageTk
 import cv2
 from src.controller.VideoController import VideoController
 
 
-class PaginaVideo(tk.Frame):
+class PaginaVideo(ttk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        self.bg_color = "#e6e6e6"
-        self.configure(bg=self.bg_color)
         
         # Instancia o controlador de vídeo
         self.video_controller = VideoController(self, self.controller.cap)
@@ -22,19 +21,19 @@ class PaginaVideo(tk.Frame):
         
         # --- LAYOUT PRINCIPAL (2 Colunas) ---
         # Coluna Esquerda: Vídeo + Botões Ação
-        self.frame_video_area = tk.Frame(self, bg=self.bg_color)
+        self.frame_video_area = ttk.Frame(self)
         self.frame_video_area.pack(side="left", fill="both", expand=True, padx=50, pady=30)
         
         # Coluna Direita: Painel de Controlos
-        self.container_controls = tk.Frame(self, bg=self.bg_color, width=450)
+        self.container_controls = ttk.Frame(self, width=450)
         self.container_controls.pack(side="right", fill="y", padx=10, pady=10)
         self.container_controls.pack_propagate(False) # Fixar largura
 
-        self.canvas_controls = tk.Canvas(self.container_controls, bg=self.bg_color, highlightthickness=0)
-        self.scrollbar_controls = tk.Scrollbar(self.container_controls, orient="vertical", command=self.canvas_controls.yview)
+        self.canvas_controls = tk.Canvas(self.container_controls, highlightthickness=0)
+        self.scrollbar_controls = ttk.Scrollbar(self.container_controls, orient="vertical", command=self.canvas_controls.yview)
 
         # Frame interno (onde os widgets serão colocados)
-        self.frame_controls = tk.Frame(self.canvas_controls, bg=self.bg_color)
+        self.frame_controls = ttk.Frame(self.canvas_controls)
         
         # Configurar scrollregion quando o frame interno muda de tamanho
         self.frame_controls.bind("<Configure>", lambda e: self.canvas_controls.configure(scrollregion=self.canvas_controls.bbox("all")))
@@ -72,118 +71,119 @@ class PaginaVideo(tk.Frame):
 
     def setup_video_area(self):
         # 1. Label do Vídeo
-        self.lbl_video = tk.Label(self.frame_video_area, bg="black", text="Sem Sinal de Vídeo", fg="white")
+        self.lbl_video = ttk.Label(self.frame_video_area, text="Sem Sinal de Vídeo")
         self.lbl_video.pack(fill="both", expand=True, pady=(0, 10))
         
         # 2. Botões (Get Image / Clean Image)
-        frame_botoes = tk.Frame(self.frame_video_area, bg=self.bg_color)
+        frame_botoes = ttk.Frame(self.frame_video_area)
         frame_botoes.pack(fill="x")
         
-        btn_get = tk.Button(frame_botoes, text="GET IMAGE", command=self.video_controller.get_image,
-                            bg="#27ae60", fg="white", font=("Arial", 10, "bold"), height=2)
+        btn_get = ttk.Button(frame_botoes, text="GET IMAGE", command=self.video_controller.get_image)
         btn_get.pack(side="left", fill="x", expand=True, padx=5)
         
-        btn_clean = tk.Button(frame_botoes, text="CLEAN IMAGE", command=self.video_controller.clean_image,
-                              bg="#c0392b", fg="white", font=("Arial", 10, "bold"), height=2)
+        btn_clean = ttk.Button(frame_botoes, text="CLEAN IMAGE", command=self.video_controller.clean_image)
         btn_clean.pack(side="left", fill="x", expand=True, padx=5)
 
     def setup_control_panel(self):
         # Estilo para LabelFrames
-        style_box = {"bg": self.bg_color, "bd": 2, "relief": "groove", "font": ("Arial", 10, "bold")}
+        # ttk usa estilos nativos, removemos o dicionário style_box que usava opções do tk
         
         # 1. Contador de Peças
-        lbl_contador = tk.Label(self.frame_controls, text="Número de peças detectadas:", 
-                                bg=self.bg_color, font=("Arial", 10))
+        lbl_contador = ttk.Label(self.frame_controls, text="Número de peças detectadas:", font=("Arial", 10))
         lbl_contador.pack(anchor="w", pady=(0, 5))
         
-        self.lbl_valor_pecas = tk.Label(self.frame_controls, textvariable=self.var_pecas_detectadas,
-                                        bg="white", relief="sunken", font=("Arial", 14, "bold"), fg="blue")
+        # Configurar estilo para o label de valor (azul e fundo branco)
+        style = ttk.Style()
+        style.configure("Score.TLabel", foreground="blue", background="white", font=("Arial", 14, "bold"), relief="sunken")
+        
+        self.lbl_valor_pecas = ttk.Label(self.frame_controls, textvariable=self.var_pecas_detectadas,
+                                        style="Score.TLabel")
         self.lbl_valor_pecas.pack(fill="x", pady=(0, 15))
 
         # 3. Threshold Limiar
-        box_hsv_limiar_min = tk.LabelFrame(self.frame_controls, text="HSV limits MIN", **style_box)
+        box_hsv_limiar_min = ttk.LabelFrame(self.frame_controls, text="HSV limits MIN")
         box_hsv_limiar_min.pack(fill="x", pady=5)
         
-        self.slider_Hue_min = tk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", label="Min Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Hue_min = ttk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
         self.slider_Hue_min.set(50)
         self.slider_Hue_min.pack(fill="x", padx=5)
 
-        self.slider_Sat_min = tk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Sat_min = ttk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
         self.slider_Sat_min.set(150)
         self.slider_Sat_min.pack(fill="x", padx=5)
 
-        self.slider_Value_min = tk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Value_min = ttk.Scale(box_hsv_limiar_min, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
         self.slider_Value_min.set(150)
         self.slider_Value_min.pack(fill="x", padx=5)
 
-        box_hsv_limiar_max = tk.LabelFrame(self.frame_controls, text="HSV limits MAX", **style_box)
+        box_hsv_limiar_max = ttk.LabelFrame(self.frame_controls, text="HSV limits MAX")
         box_hsv_limiar_max.pack(fill="x", pady=5)
         
-        self.slider_Hue_max = tk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", label="Min Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Hue_max = ttk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
         self.slider_Hue_max.set(50)
         self.slider_Hue_max.pack(fill="x", padx=5)
         
-        self.slider_Sat_max = tk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Sat_max = ttk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
         self.slider_Sat_max.set(150)
         self.slider_Sat_max.pack(fill="x", padx=5)
 
-        self.slider_Value_max = tk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_Value_max = ttk.Scale(box_hsv_limiar_max, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
         self.slider_Value_max.set(150)
         self.slider_Value_max.pack(fill="x", padx=5)
 
         # 3. Threshold Limiar
-        box_threshold = tk.LabelFrame(self.frame_controls, text="THRESHOLD limits MIN", **style_box)
+        box_threshold = ttk.LabelFrame(self.frame_controls, text="THRESHOLD limits MIN")
         box_threshold.pack(fill="x", pady=5)
         
-        self.slider_threshold_min = tk.Scale(box_threshold, from_=0, to=255, orient="horizontal", label="Min Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_threshold_min = ttk.Scale(box_threshold, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
         self.slider_threshold_min.set(50)
         self.slider_threshold_min.pack(fill="x", padx=5)
 
-        self.slider_threshold_max = tk.Scale(box_threshold, from_=0, to=255, orient="horizontal", label="Max Val", bg=self.bg_color, command=self.ao_mexer_slider)
+        self.slider_threshold_max = ttk.Scale(box_threshold, from_=0, to=255, orient="horizontal", command=self.ao_mexer_slider)
         self.slider_threshold_max.set(150)
         self.slider_threshold_max.pack(fill="x", padx=5)
 
         # 4. Contour & Blur Config (Lado a Lado)
-        frame_configs = tk.Frame(self.frame_controls, bg=self.bg_color)
+        frame_configs = ttk.Frame(self.frame_controls)
         frame_configs.pack(fill="x", pady=5)
         
-        box_contour = tk.LabelFrame(frame_configs, text="Contour Config", **style_box)
+        box_contour = ttk.LabelFrame(frame_configs, text="Contour Config")
         box_contour.pack(side="left", fill="both", expand=True, padx=(0, 2))
         self.check_contour = tk.BooleanVar(value=True)
-        tk.Checkbutton(box_contour, text="Draw", variable=self.check_contour, bg=self.bg_color, command=self.ao_mexer_slider).pack(pady=10)
+        ttk.Checkbutton(box_contour, text="Draw", variable=self.check_contour, command=self.ao_mexer_slider).pack(pady=10)
 
-        box_blur = tk.LabelFrame(frame_configs, text="Blur Config", **style_box)
+        box_blur = ttk.LabelFrame(frame_configs, text="Blur Config")
         box_blur.pack(side="left", fill="both", expand=True, padx=(2, 0))
-        self.slider_blur = tk.Scale(box_blur, from_=1, to=15, orient="horizontal", bg=self.bg_color, showvalue=0, command=self.ao_mexer_slider)
+        self.slider_blur = ttk.Scale(box_blur, from_=1, to=15, orient="horizontal", command=self.ao_mexer_slider)
         self.slider_blur.set(1)
         self.slider_blur.pack(pady=5, padx=5)
 
                 # 6. View Type Selection
-        type_of_segmentation = tk.LabelFrame(self.frame_controls, text="Type of Segmentation", **style_box)
+        type_of_segmentation = ttk.LabelFrame(self.frame_controls, text="Type of Segmentation")
         type_of_segmentation.pack(fill="x", pady=5)
-        tk.Radiobutton(type_of_segmentation, text="By Color", variable=self.var_type_of_segmentation, value="by_color", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
-        tk.Radiobutton(type_of_segmentation, text="By Limiar", variable=self.var_type_of_segmentation, value="by_limiar", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
-        tk.Radiobutton(type_of_segmentation, text="By Shape", variable=self.var_type_of_segmentation, value="by_shape", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        ttk.Radiobutton(type_of_segmentation, text="By Color", variable=self.var_type_of_segmentation, value="by_color", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        ttk.Radiobutton(type_of_segmentation, text="By Limiar", variable=self.var_type_of_segmentation, value="by_limiar", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        ttk.Radiobutton(type_of_segmentation, text="By Shape", variable=self.var_type_of_segmentation, value="by_shape", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
 
 
         # 5. Profile & Description
         # CORREÇÃO AQUI: mt=10 removido, usado pady=(10, 0)
-        tk.Label(self.frame_controls, text="Profile:", bg=self.bg_color, font=("Arial", 9, "bold")).pack(anchor="w", pady=(10, 0))
-        self.entry_profile = tk.Entry(self.frame_controls)
+        ttk.Label(self.frame_controls, text="Profile:", font=("Arial", 9, "bold")).pack(anchor="w", pady=(10, 0))
+        self.entry_profile = ttk.Entry(self.frame_controls)
         self.entry_profile.pack(fill="x", pady=(0, 5))
         
-        tk.Label(self.frame_controls, text="Description:", bg=self.bg_color, font=("Arial", 9, "bold")).pack(anchor="w")
-        self.entry_desc = tk.Entry(self.frame_controls)
+        ttk.Label(self.frame_controls, text="Description:", font=("Arial", 9, "bold")).pack(anchor="w")
+        self.entry_desc = ttk.Entry(self.frame_controls)
         self.entry_desc.pack(fill="x", pady=(0, 10))
 
         
         # 6. View Type Selection
-        box_view = tk.LabelFrame(self.frame_controls, text="View Type", **style_box)
+        box_view = ttk.LabelFrame(self.frame_controls, text="View Type")
         box_view.pack(fill="x", pady=5)
-        tk.Radiobutton(box_view, text="Result", variable=self.var_imagem_tipo, value="img_resultado", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
-        tk.Radiobutton(box_view, text="Mask Clean", variable=self.var_imagem_tipo, value="mask_clean", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
-        tk.Radiobutton(box_view, text="Mask Raw", variable=self.var_imagem_tipo, value="mask", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
-        tk.Radiobutton(box_view, text="Original Frozen", variable=self.var_imagem_tipo, value="imagem_congelada", bg=self.bg_color, command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        ttk.Radiobutton(box_view, text="Result", variable=self.var_imagem_tipo, value="img_resultado", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        ttk.Radiobutton(box_view, text="Mask Clean", variable=self.var_imagem_tipo, value="mask_clean", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        ttk.Radiobutton(box_view, text="Mask Raw", variable=self.var_imagem_tipo, value="mask", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
+        ttk.Radiobutton(box_view, text="Original Frozen", variable=self.var_imagem_tipo, value="imagem_congelada", command=self.ao_mexer_slider).pack(anchor="w", padx=10)
 
 
     # --- LÓGICA DE VÍDEO E EVENTOS ---
