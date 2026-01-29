@@ -87,7 +87,7 @@ class VideoController:
             mask = processor.create_mask_by_HSV(lower, upper)
         
         mask_clean = processor.remove_noise(mask)
-        contours, hierarchy = processor.get_contours_hierarchy(mask_clean)
+        contours, hierarchy = processor.get_contours(mask_clean)
         
         if contours:
             img_resultado = processor.objects_detection(

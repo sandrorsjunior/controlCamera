@@ -116,8 +116,8 @@ class ProcessImage:
     def get_contours(self, mask, th1=70, th2=150):
         # Detecta bordas com Canny e encontra contornos externos
         edges = cv.Canny(mask, th1, th2)
-        objetos, _ = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        return objetos
+        contours, hierarchy = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        return contours, hierarchy
     
     def get_contours_hierarchy(self, mask):
         # Encontra contornos e a hierarquia (necessário para detectar furos/filhos)
