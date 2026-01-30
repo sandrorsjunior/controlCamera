@@ -1,9 +1,13 @@
 {
-    "url": "opc.tcp://localhost:4840",
+    "url": "opc.tcp://192.168.250.1:4840",
     "variables": [
         [
             4,
             "SinalPython"
+        ],
+        [
+            4,
+            "CamaraS"
         ]
     ],
     "profiles": [
@@ -46,6 +50,48 @@
                 150.0
             ],
             "blur": 5.355555555555556,
+            "contour": true,
+            "segmentation_type": "by_color"
+        },
+        {
+            "profile": "circulo",
+            "description": "config",
+            "hsv_min": [
+                112.5,
+                26.25,
+                37.5
+            ],
+            "hsv_max": [
+                50.0,
+                150.0,
+                150.0
+            ],
+            "threshold": [
+                180.0,
+                255.0
+            ],
+            "blur": 1.0,
+            "contour": true,
+            "segmentation_type": "by_limiar"
+        },
+        {
+            "profile": "test_with_video",
+            "description": "teste com video",
+            "hsv_min": [
+                0.804416403785489,
+                37.003154574132495,
+                216.38801261829656
+            ],
+            "hsv_max": [
+                37.003154574132495,
+                181.7981072555205,
+                255.0
+            ],
+            "threshold": [
+                12.870662460567823,
+                150.0
+            ],
+            "blur": 15.0,
             "contour": true,
             "segmentation_type": "by_color"
         }

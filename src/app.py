@@ -16,7 +16,8 @@ class AplicacaoApp(tk.Tk):
         self.geometry("1000x600")
         
         # Inicializar a captura de vídeo (0 é geralmente a webcam padrão)
-        self.cap = cv2.VideoCapture(0)
+        #"http://10.223.45.145:8080/video"
+        self.cap = cv2.VideoCapture("C:\\Users\\hulk\\source\\repos\\controlCamera\\tests\\resources\\video1.mp4")  # Pode ser substituído por 0 para webcam local
         
         # Contentor principal onde as "janelas" (frames) serão mostradas
         self.container = ttk.Frame(self)

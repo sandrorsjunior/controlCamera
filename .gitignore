@@ -109,7 +109,8 @@ Desktop.ini
 .DS_Store
 
 # Media files (Opcional: descomente se quiser ignorar fotos/videos gerados pela app)
-# *.jpg
-# *.png
-# *.mp4
+*.jpg
+*.jpeg
+*.png
+*.mp4
 # *.avi
