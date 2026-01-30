@@ -152,11 +152,15 @@ class PaginaVideo(ttk.Frame):
         box_contour = ttk.LabelFrame(frame_configs, text="Contour Config")
         box_contour.pack(side="left", fill="both", expand=True, padx=(0, 2))
         self.check_contour = tk.BooleanVar(value=True)
+        self.check_inverseMask = tk.BooleanVar(value=False)
         ttk.Checkbutton(box_contour, text="Draw", variable=self.check_contour, command=self.ao_mexer_slider).pack(pady=10)
+        ttk.Checkbutton(box_contour, text="Inverse Mask", variable=self.check_inverseMask, command=self.ao_mexer_slider).pack(pady=10)
 
         box_blur = ttk.LabelFrame(frame_configs, text="Blur Config")
         box_blur.pack(side="left", fill="both", expand=True, padx=(2, 0))
         self.slider_blur = self.create_labeled_slider(box_blur, "Blur", 1, 15, 1)
+
+
 
                 # 6. View Type Selection
         type_of_segmentation = ttk.LabelFrame(self.frame_controls, text="Type of Segmentation")
@@ -203,6 +207,7 @@ class PaginaVideo(ttk.Frame):
             "threshold": [self.slider_threshold_min.get(), self.slider_threshold_max.get()],
             "blur": self.slider_blur.get(),
             "contour": self.check_contour.get(),
+            "inverse_mask": self.check_inverseMask.get(),
             "segmentation_type": self.var_type_of_segmentation.get()
         }
 

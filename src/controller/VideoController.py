@@ -85,12 +85,12 @@ class VideoController:
         
         seg_type = self.view.var_type_of_segmentation.get()
         if seg_type == "by_color":
-            mask = processor.create_mask_by_HSV(lower, upper)
+            mask = processor.create_mask_by_HSV(lower, upper, self.view.check_inverseMask.get())
         elif seg_type == "by_limiar":
-            mask = processor.create_mask_by_threshold(self.view.slider_threshold_min.get(), self.view.slider_threshold_max.get())
+            mask = processor.create_mask_by_threshold(self.view.slider_threshold_min.get(), self.view.slider_threshold_max.get(), self.view.check_inverseMask.get())
         else:
             # Fallback ou implementação futura para by_shape
-            mask = processor.create_mask_by_HSV(lower, upper)
+            mask = processor.create_mask_by_HSV(lower, upper, self.view.check_inverseMask.get())
         
         mask_clean = processor.remove_noise(mask)
         contours, hierarchy = processor.get_contours(mask_clean)

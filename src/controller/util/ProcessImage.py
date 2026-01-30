@@ -89,17 +89,21 @@ class ProcessImage:
             return cx, cy
         return None, None
     
-    def create_mask_by_HSV(self, lower_bound, upper_bound):
+    def create_mask_by_HSV(self, lower_bound, upper_bound, isInverted=False):
         # Cria uma máscara binária filtrando pelos intervalos de cor HSV
         img_hsv = self.convert_to_hsv()
         mask = cv.inRange(img_hsv, lower_bound, upper_bound)
+        if isInverted:
+            mask = cv.bitwise_not(mask)
         return mask
 
-    def create_mask_by_threshold(self, th_min, th_max):
+    def create_mask_by_threshold(self, th_min, th_max, inverted=False):
+        type_of_mask = cv.THRESH_BINARY_INV if inverted else cv.THRESH_BINARY
         # Converte a imagem para escala de cinza
         gray = cv.cvtColor(self.img_original, cv.COLOR_BGR2GRAY)
         # Aplica limiarização para criar uma máscara binária
-        _, mask = cv.threshold(gray, th_min, th_max, cv.THRESH_BINARY)
+        _, mask = cv.threshold(gray, th_min, th_max, type_of_mask)
+        
         return mask
     
     def remove_noise(self, mask, erode_kernel_size=(6,6), dilate_kernel_size=(3,3)):
