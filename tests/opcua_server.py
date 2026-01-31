@@ -62,14 +62,17 @@ async def main():
     # Valor inicial: True (para você ver a mudança para False)
     # Tipo: Boolean
     var_node_id = f"ns={idx};s=SinalPython"
-    my_var = await my_obj.add_variable(var_node_id, "SinalPython", True)
+    SinalPython = await my_obj.add_variable(var_node_id, "SinalPython", True)
+    CamaraS = await my_obj.add_variable(var_node_id, "CamaraS", True)
     
     # Define explicitamente como Boolean (embora o Python infira pelo True)
-    await my_var.set_value(True, varianttype=ua.VariantType.Boolean)
+    await SinalPython.set_value(True, varianttype=ua.VariantType.Boolean)
+    await CamaraS.set_value(True, varianttype=ua.VariantType.Boolean)
 
     # --- PERMISSÕES ---
     # Torna a variável gravável (writable) pelo cliente
-    await my_var.set_writable()
+    await SinalPython.set_writable()
+    await CamaraS.set_writable()
 
     # --- CONFIGURAÇÃO DO MONITORAMENTO (SUBSCRIPTION) ---
     # Criamos o handler e a assinatura
@@ -77,7 +80,8 @@ async def main():
     sub = await server.create_subscription(500, handler) # Checa a cada 500ms
     
     # Inscrevemos a variável no monitoramento
-    handle = await sub.subscribe_data_change(my_var)
+    await sub.subscribe_data_change(SinalPython)
+    await sub.subscribe_data_change(CamaraS)
 
     print("Servidor rodando!")
     print(f"Endpoint: opc.tcp://0.0.0.0:4840")
