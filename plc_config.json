@@ -116,6 +116,36 @@
             "contour": true,
             "inverse_mask": false,
             "segmentation_type": "by_color"
+        },
+        {
+            "profile": "phone",
+            "description": "this detected my headPhone",
+            "hsv_min": [
+                50.0,
+                150.0,
+                150.0
+            ],
+            "hsv_max": [
+                50.0,
+                150.0,
+                150.0
+            ],
+            "threshold": [
+                70.125,
+                150.0
+            ],
+            "blur": 1.0,
+            "contour": true,
+            "inverse_mask": false,
+            "segmentation_type": "by_limiar",
+            "circle_hough": [
+                1.0,
+                100.0,
+                19.473684210526315,
+                34.21052631578947,
+                10.526315789473683,
+                50.526315789473685
+            ]
         }
     ]
 }

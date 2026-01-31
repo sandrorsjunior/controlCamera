@@ -163,14 +163,14 @@ class ProcessImage:
         x, y, w, h = cv.boundingRect(contour)
         cv.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-    def get_circles(self, mask, min_dist=40, param1=50, param2=25, min_radius=10, max_radius=100):
+    def get_circles(self, mask, dp=1, min_dist=40, param1=50, param2=25, min_radius=10, max_radius=100):
         # Aplica desfoque para reduzir ruído antes da Transformada de Hough
         blurred = cv.GaussianBlur(mask, (9, 9), 2)
         
         circles = cv.HoughCircles(
             blurred, 
             cv.HOUGH_GRADIENT, 
-            dp=1, 
+            dp=dp, 
             minDist=min_dist,
             param1=param1,
             param2=param2,

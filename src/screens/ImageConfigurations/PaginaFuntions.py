@@ -110,6 +110,15 @@ class PaginaFunctions(ttk.Frame):
             update_slider(page_video.slider_threshold_min, thresh[0])
             update_slider(page_video.slider_threshold_max, thresh[1])
 
+            # Atualiza Círculo Hough
+            circle_params = profile.get("circle_hough", [0, 0, 0, 0, 0, 0])
+            update_slider(page_video.slider_circle_dp, circle_params[0])
+            update_slider(page_video.slider_circle_min_dist, circle_params[1])
+            update_slider(page_video.slider_circle_param1, circle_params[2])
+            update_slider(page_video.slider_circle_param2, circle_params[3])
+            update_slider(page_video.slider_circle_min_radius, circle_params[4])
+            update_slider(page_video.slider_circle_max_radius, circle_params[5])
+
             # Atualiza Blur
             update_slider(page_video.slider_blur, profile.get("blur", 1))
 

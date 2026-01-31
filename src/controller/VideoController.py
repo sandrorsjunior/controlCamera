@@ -95,7 +95,13 @@ class VideoController:
         mask_clean = processor.remove_noise(mask)
         contours, hierarchy = processor.get_contours(mask_clean)
         
-        circles = processor.get_circles(mask_clean, min_dist=40, param1=50, param2=25, min_radius=10, max_radius=100)
+        circles = processor.get_circles(mask_clean, 
+                                        int(self.view.slider_circle_dp.get()), 
+                                        int(self.view.slider_circle_min_dist.get()),
+                                        int(self.view.slider_circle_param1.get()),
+                                        int(self.view.slider_circle_param2.get()),
+                                        int(self.view.slider_circle_min_radius.get()), 
+                                        int(self.view.slider_circle_max_radius.get()))
         if circles is not None:
             for circle in circles:
                 x, y, r = int(circle[0]), int(circle[1]), int(circle[2])

@@ -24,7 +24,7 @@ class PaginaVideo(ttk.Frame):
         # --- LAYOUT PRINCIPAL (2 Colunas) ---
         # Coluna Esquerda: Vídeo + Botões Ação
         self.frame_video_area = ttk.Frame(self)
-        self.frame_video_area.pack(side="left", fill="both", expand=True, padx=50, pady=30)
+        self.frame_video_area.pack(side="left", fill="both", expand=True, padx=10, pady=30)
         
         # Coluna Direita: Painel de Controlos
         self.container_controls = ttk.Frame(self, width=450)
@@ -146,6 +146,18 @@ class PaginaVideo(ttk.Frame):
         self.slider_threshold_min = self.create_labeled_slider(box_threshold, "Min", 0, 255, 50)
         self.slider_threshold_max = self.create_labeled_slider(box_threshold, "Max", 0, 255, 150)
 
+        # 7. Params of circles
+        box_circle = ttk.LabelFrame(self.frame_controls, text="circle prams")
+        box_circle.pack(fill="x", pady=5, padx=5)
+        
+        self.slider_circle_dp = self.create_labeled_slider(box_circle, "DP", 1, 2, 1)
+        self.slider_circle_min_dist = self.create_labeled_slider(box_circle, "Min Dist", 0, 100, 40)
+        self.slider_circle_param1 = self.create_labeled_slider(box_circle, "Param1", 0, 100, 50)
+        self.slider_circle_param2 = self.create_labeled_slider(box_circle, "Param2", 0, 100, 25)
+        self.slider_circle_min_radius = self.create_labeled_slider(box_circle, "Min R", 0, 100, 10)
+        self.slider_circle_max_radius = self.create_labeled_slider(box_circle, "Max R", 0, 200, 100)
+
+
         # 4. Contour & Blur Config (Lado a Lado)
         frame_configs = ttk.Frame(self.frame_controls)
         frame_configs.pack(fill="x", pady=5)
@@ -209,7 +221,15 @@ class PaginaVideo(ttk.Frame):
             "blur": self.slider_blur.get(),
             "contour": self.check_contour.get(),
             "inverse_mask": self.check_inverseMask.get(),
-            "segmentation_type": self.var_type_of_segmentation.get()
+            "segmentation_type": self.var_type_of_segmentation.get(),
+            "circle_hough": [
+                self.slider_circle_dp.get(),
+                self.slider_circle_min_dist.get(),
+                self.slider_circle_param1.get(),
+                self.slider_circle_param2.get(),
+                self.slider_circle_min_radius.get(),
+                self.slider_circle_max_radius.get()
+            ]
         }
 
         file_path = "plc_config.json"
