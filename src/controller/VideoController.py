@@ -1,4 +1,5 @@
 import cv2
+import math
 import numpy as np
 import json
 import threading
@@ -95,31 +96,16 @@ class VideoController:
         mask_clean = processor.remove_noise(mask)
         contours, hierarchy = processor.get_contours(mask_clean)
         
-        if contours:
-            # Verifica se existe um círculo azul entre os contornos encontrados
-            if not self.sending_plc:
-                for cnt in contours:
-                    if self.check_blue_circle(cnt, img_processar):
-                        threading.Thread(target=self.trigger_plc_signals).start()
-                        break
-
-            img_resultado = processor.objects_detection(
-                contours, 
-                tolerance=500,
-                show_contours=self.view.check_contour.get(),
-                central_point=True,
-                show_color=True,
-                hierarchy=hierarchy,
-                show_holes=True
-            )
-            stats = processor.get_statistics()
-            self.view.var_pecas_detectadas.set(str(stats['total_objects']))
-        else:
-            img_resultado = img_processar
-            self.view.var_pecas_detectadas.set("0")
+        circles = processor.get_circles(mask_clean, min_dist=40, param1=50, param2=25, min_radius=10, max_radius=100)
+        if circles is not None:
+            for circle in circles:
+                x, y, r = int(circle[0]), int(circle[1]), int(circle[2])
+                area = math.pi * (r ** 2)
+                if area > 50:
+                    img_processar = cv2.circle(img_processar, (x, y), r, (0, 255, 0), 2)
 
         # Decide qual imagem mostrar baseado na seleção da View
-        self.view.atualizar_visualizacao_final(img_resultado, mask, mask_clean, self.imagem_congelada)
+        self.view.atualizar_visualizacao_final(img_processar, mask, mask_clean, self.imagem_congelada)
 
     def check_blue_circle(self, contour, image):
         """Verifica se o contorno é um círculo e se a cor média é azul."""
