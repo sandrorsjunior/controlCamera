@@ -101,6 +101,7 @@ class PaginaVideo(ttk.Frame):
 
         slider = ttk.Scale(frame, from_=from_, to=to, orient="horizontal", command=update_val)
         slider.set(initial)
+        slider.label_var = var_val
         slider.pack(side="left", fill="x", expand=True, padx=5)
         
         ttk.Label(frame, textvariable=var_val, width=4).pack(side="right")
