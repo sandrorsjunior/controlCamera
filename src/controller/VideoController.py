@@ -52,7 +52,7 @@ class VideoController:
         self.iniciar() # Reinicia o loop
 
     def loop(self):
-        if not self.view.winfo_exists() or not self.running or self.modo_estatico:
+        if not self.running or self.modo_estatico:
             return
 
         ret, frame = self.cap.read()
@@ -65,7 +65,6 @@ class VideoController:
         self.view.after(15, self.loop)
 
     def atualizar_processamento(self, image=None):
-        """Aplica filtros e deteção na imagem (congelada ou frame atual)."""
         if self.imagem_congelada is None and image is None:
             return
         elif image is not None:
