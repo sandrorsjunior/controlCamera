@@ -44,7 +44,9 @@ class PaginaFunctions(ttk.Frame):
                         command=lambda: controller.mostrar_frame("PaginaVideo"))
         btn_back.pack(side="right", padx=5)
         
-        # Dadosiles = []
+        # Dados
+        self.profiles = []
+        self.plc_data = {}
         self.load_profiles()
 
     def load_profiles(self):
@@ -60,6 +62,10 @@ class PaginaFunctions(ttk.Frame):
                 with open(file_path, "r") as f:
                     data = json.load(f)
                     self.profiles = data.get("profiles", [])
+                    self.plc_data = {
+                        "url": data.get("url", ""),
+                        "variables": data.get("variables", [])
+                    }
                 
                 for i, p in enumerate(self.profiles):
                     self.tree.insert("", "end", iid=str(i), values=(p.get("profile"), p.get("description")))
@@ -121,3 +127,22 @@ class PaginaFunctions(ttk.Frame):
 
             # Força atualização do processamento de imagem
             page_video.ao_mexer_slider()
+
+        # Atualiza PaginaFile
+        if "PaginaFile" in self.controller.frames:
+            page_file = self.controller.frames["PaginaFile"]
+            
+            # Atualiza URL
+            url = profile.get("url", self.plc_data.get("url", ""))
+            page_file.entry_url.delete(0, tk.END)
+            page_file.entry_url.insert(0, url)
+            
+            # Atualiza Variáveis
+            variables = profile.get("variables", self.plc_data.get("variables", []))
+            
+            for item in page_file.tree.get_children():
+                page_file.tree.delete(item)
+                
+            for var in variables:
+                if isinstance(var, list) and len(var) >= 2:
+                    page_file.tree.insert("", "end", values=(var[0], var[1]))
