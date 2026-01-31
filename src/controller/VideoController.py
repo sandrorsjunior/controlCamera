@@ -24,6 +24,9 @@ class VideoController:
         self.running = False
         self.imagem_congelada = None 
         self.modo_estatico = False
+        self.circle_detected = False
+        self.msg_sent_to_plc = False
+        self.fps = 0
 
     def iniciar(self):
         if not self.running and not self.modo_estatico:
@@ -62,6 +65,12 @@ class VideoController:
             self.view.mostrar_imagem_no_label(frame)
             self.atualizar_processamento(frame)
         
+        if self.fps <= 50:
+            self.fps += 1
+        else:
+            self.fps = 0
+            self.msg_sent_to_plc = False
+
         self.view.after(15, self.loop)
 
     def atualizar_processamento(self, image=None):
@@ -102,12 +111,25 @@ class VideoController:
                                         int(self.view.slider_circle_param2.get()),
                                         int(self.view.slider_circle_min_radius.get()), 
                                         int(self.view.slider_circle_max_radius.get()))
-        if circles is not None:
+        
+        if len(circles) > 0:
             for circle in circles:
                 x, y, r = int(circle[0]), int(circle[1]), int(circle[2])
                 area = math.pi * (r ** 2)
                 if area > 50:
+                    self.view.var_pecas_detectadas.set(str(len(circles)))
                     img_processar = cv2.circle(img_processar, (x, y), r, (0, 255, 0), 2)
+                    self.circle_detected = True
+        else:
+            self.circle_detected = False
+
+
+        if self.circle_detected and not self.msg_sent_to_plc:
+            self.trigger_plc_signals()
+            #print("Trigger PLC Signal", self.fps, self.msg_sent_to_plc)
+            self.msg_sent_to_plc = True
+        else:
+            self.view.var_pecas_detectadas.set("0")
 
         # Decide qual imagem mostrar baseado na seleção da View
         self.view.atualizar_visualizacao_final(img_processar, mask, mask_clean, self.imagem_congelada)

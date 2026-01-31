@@ -1,5 +1,5 @@
 {
-    "url": "opc.tcp://192.168.250.1:4840",
+    "url": "opc.tcp://localhost:4840",
     "variables": [
         [
             4,
