@@ -63,7 +63,9 @@ async def main():
     # Tipo: Boolean
     var_node_id = f"ns={idx};s=SinalPython"
     SinalPython = await my_obj.add_variable(var_node_id, "SinalPython", True)
-    CamaraS = await my_obj.add_variable(var_node_id, "CamaraS", True)
+    
+    var_node_id_cam = f"ns={idx};s=CamaraS"
+    CamaraS = await my_obj.add_variable(var_node_id_cam, "CamaraS", True)
     
     # Define explicitamente como Boolean (embora o Python infira pelo True)
     await SinalPython.set_value(True, varianttype=ua.VariantType.Boolean)
