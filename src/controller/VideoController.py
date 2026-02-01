@@ -27,8 +27,21 @@ class VideoController:
         self.circle_detected = False
         self.msg_sent_to_plc = False
         self.fps = 0
+        
+        # Cache da configuração do PLC para evitar leitura de disco constante
+        self.plc_config = {}
+        self.load_plc_config()
+
+    def load_plc_config(self):
+        try:
+            with open("plc_config.json", "r") as f:
+                self.plc_config = json.load(f)
+        except Exception as e:
+            print(f"Erro ao carregar config PLC: {e}")
+            self.plc_config = {}
 
     def iniciar(self):
+        self.load_plc_config() # Recarrega caso tenha mudado noutra tela
         if not self.running and not self.modo_estatico:
             self.running = True
             self.loop()
@@ -169,11 +182,8 @@ class VideoController:
         """Lê a configuração e envia sinal para o PLC."""
         self.sending_plc = True
         try:
-            with open("plc_config.json", "r") as f:
-                config = json.load(f)
-            
-            url = config.get("url")
-            variables = config.get("variables", [])
+            url = self.plc_config.get("url")
+            variables = self.plc_config.get("variables", [])
             
             # Callback simples para log (pode ser melhorado para usar o log da UI)
             log_cb = lambda msg: print(f"[PLC Auto]: {msg}")

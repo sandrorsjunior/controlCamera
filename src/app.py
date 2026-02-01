@@ -14,7 +14,7 @@ class AplicacaoApp(tk.Tk):
         
         # Configurações da Janela Principal
         self.title("Sistema de Video Monitorização")
-        self.geometry("1000x600")
+        self.geometry("1100x600")
         
         # Inicializar a captura de vídeo (0 é geralmente a webcam padrão)
         #"http://10.223.45.145:8080/video"

@@ -76,6 +76,7 @@ class StatusWindow(ttk.Frame):
         ttk.Label(self.scrollable_frame, text="Nome", font=("Arial", 10, "bold")).grid(row=0, column=0, padx=10, pady=5, sticky="w")
         ttk.Label(self.scrollable_frame, text="NodeID", font=("Arial", 10, "bold")).grid(row=0, column=1, padx=10, pady=5, sticky="w")
         ttk.Label(self.scrollable_frame, text="Ativo", font=("Arial", 10, "bold")).grid(row=0, column=2, padx=10, pady=5, sticky="w")
+        ttk.Label(self.scrollable_frame, text="Status", font=("Arial", 10, "bold")).grid(row=0, column=3, padx=10, pady=5, sticky="w")
         
         # Constrói as linhas da tabela iterando sobre as variáveis.
         for i, var in enumerate(variables):
@@ -93,8 +94,13 @@ class StatusWindow(ttk.Frame):
                 chk = ttk.Checkbutton(self.scrollable_frame, variable=bool_var, state="disabled")
                 chk.grid(row=i+1, column=2, padx=10, pady=5)
                 
+                # Cria indicador LED (Canvas)
+                canvas_led = tk.Canvas(self.scrollable_frame, width=20, height=20, highlightthickness=0)
+                canvas_led.grid(row=i+1, column=3, padx=10, pady=5)
+                led = canvas_led.create_oval(2, 2, 18, 18, fill="gray", outline="black")
+                
                 # Guarda a referência da variável Tkinter usando o NodeID como chave.
-                self.vars_ui[node_id] = bool_var
+                self.vars_ui[node_id] = {"var": bool_var, "canvas": canvas_led, "led": led}
 
     def update_ui_callback(self, node_id_str, value):
         # Callback chamado pela thread secundária.
@@ -105,7 +111,10 @@ class StatusWindow(ttk.Frame):
     def _update_checkbox(self, node_id_str, value):
         # Atualiza o valor do checkbox na interface.
         if node_id_str in self.vars_ui:
-            self.vars_ui[node_id_str].set(bool(value))
+            item = self.vars_ui[node_id_str]
+            item["var"].set(bool(value))
+            color = "#00FF00" if value else "#FF0000" # Verde se True, Vermelho se False
+            item["canvas"].itemconfig(item["led"], fill=color)
         else:
             print(f"Aviso: NodeID '{node_id_str}' recebido do callback não encontrado na UI.")
 

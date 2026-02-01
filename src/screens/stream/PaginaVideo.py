@@ -245,7 +245,16 @@ class PaginaVideo(ttk.Frame):
         if "profiles" not in data:
             data["profiles"] = []
 
-        data["profiles"].append(new_data)
+        # Verifica se o perfil já existe e atualiza, senão adiciona
+        profile_exists = False
+        for i, p in enumerate(data["profiles"]):
+            if p.get("profile") == profile_name:
+                data["profiles"][i] = new_data
+                profile_exists = True
+                break
+        
+        if not profile_exists:
+            data["profiles"].append(new_data)
 
         with open(file_path, "w") as f:
             json.dump(data, f, indent=4)
