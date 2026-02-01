@@ -5,6 +5,7 @@ import cv2
 from src.screens.stream.PaginaVideo import PaginaVideo
 from src.screens.ImageConfigurations.PaginaFuntions import PaginaFunctions
 from src.screens.configurations.PaginaFile import PaginaFile
+from src.screens.status.StatusWindow import StatusWindow
 
 
 class AplicacaoApp(tk.Tk):
@@ -33,7 +34,7 @@ class AplicacaoApp(tk.Tk):
         
         # Inicializar as páginas
         # Adicionamos a HomePage (Video) e as outras páginas
-        for F in (PaginaVideo, PaginaFunctions, PaginaFile):
+        for F in (PaginaVideo, PaginaFunctions, PaginaFile, StatusWindow):
             page_name = F.__name__
             frame = F(parent=self.container, controller=self)
             self.frames[page_name] = frame
@@ -62,6 +63,11 @@ class AplicacaoApp(tk.Tk):
         menu_func.add_command(label="Voltar ao Video", command=lambda: self.mostrar_frame("PaginaVideo"))
         barra_menu.add_cascade(label="Functions", menu=menu_func)
         
+        # Menu Monitor
+        menu_monitor = tk.Menu(barra_menu, tearoff=0)
+        menu_monitor.add_command(label="Status Variáveis", command=lambda: self.mostrar_frame("StatusWindow"))
+        barra_menu.add_cascade(label="Monitor", menu=menu_monitor)
+        
         self.config(menu=barra_menu)
 
     def mostrar_frame(self, page_name):
@@ -75,6 +81,13 @@ class AplicacaoApp(tk.Tk):
         else:
             # Opcional: Parar processamento de vídeo se sair da tela para poupar CPU
             self.frames["PaginaVideo"].parar_video()
+            
+        # Lógica para StatusWindow (Monitoramento)
+        if page_name == "StatusWindow":
+            frame.iniciar_monitoramento()
+        elif "StatusWindow" in self.frames:
+            # Para o monitoramento se sair da tela de status
+            self.frames["StatusWindow"].parar_monitoramento()
 
     def fechar_app(self):
         if self.cap.isOpened():
