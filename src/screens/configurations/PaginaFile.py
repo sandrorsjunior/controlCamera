@@ -3,7 +3,15 @@ from tkinter import ttk, scrolledtext
 import asyncio
 import threading
 import json
+import queue
+from asyncua import Client, ua
 from src.controller.PLCController import PLCController
+
+class SubHandler:
+    def __init__(self, log_callback):
+        self.log_callback = log_callback
+    def datachange_notification(self, node, val, data):
+        self.log_callback(f"Monitor: {node} = {val}")
 
 class PaginaFile(ttk.Frame):
     def __init__(self, parent, controller):
@@ -12,6 +20,9 @@ class PaginaFile(ttk.Frame):
         
         # Instancia o controlador de PLC
         self.plc_controller = PLCController()
+        
+        self.send_queue = queue.Queue()
+        self.connection_running = False
         
         # --- Estilos ---
         style = ttk.Style()
@@ -75,6 +86,14 @@ class PaginaFile(ttk.Frame):
         # --- Frame de Ação ---
         action_frame = ttk.LabelFrame(self, text="Comandos", padding="15")
         action_frame.pack(fill="x", padx=10, pady=5)
+        
+        # Botões Start/Stop Conexão
+        conn_frame = ttk.Frame(action_frame)
+        conn_frame.pack(fill="x", pady=(0, 10))
+        self.btn_start = ttk.Button(conn_frame, text="Start Connection", command=self.start_connection)
+        self.btn_start.pack(side="left", fill="x", expand=True, padx=2)
+        self.btn_stop = ttk.Button(conn_frame, text="Stop Connection", command=self.stop_connection, state="disabled")
+        self.btn_stop.pack(side="left", fill="x", expand=True, padx=2)
 
         # Checkbox para Valor Booleano
         self.bool_var = tk.BooleanVar(value=False)
@@ -138,13 +157,16 @@ class PaginaFile(ttk.Frame):
 
     def log(self, message):
         """Função auxiliar para escrever na área de log de forma segura"""
-        self.log_area.config(state='normal')
-        self.log_area.insert(tk.END, message + "\n")
-        self.log_area.see(tk.END) # Scroll automático para o fim
-        self.log_area.config(state='disabled')
+        def _log():
+            self.log_area.config(state='normal')
+            self.log_area.insert(tk.END, message + "\n")
+            self.log_area.see(tk.END) # Scroll automático para o fim
+            self.log_area.config(state='disabled')
+        self.after(0, _log)
 
     def start_async_thread(self):
         """Inicia a thread separada para não travar a GUI"""
+        
         self.btn_send.config(state="disabled") # Desabilita botão para evitar cliques múltiplos
         self.log("-" * 30)
         
@@ -161,6 +183,12 @@ class PaginaFile(ttk.Frame):
         
         item = self.tree.item(selected[0])
         ns, var_name = item['values']
+        
+        if self.connection_running:
+            self.send_queue.put((ns, var_name, valor_booleano))
+            self.log(f"Comando enfileirado: {var_name} -> {valor_booleano}")
+            self.btn_send.config(state="normal")
+            return
 
         # Cria e inicia a thread
         thread = threading.Thread(target=self.run_async_task, args=(url, ns, var_name, valor_booleano))
@@ -176,3 +204,69 @@ class PaginaFile(ttk.Frame):
         finally:
             # Reabilita o botão na thread principal
             self.after(0, lambda: self.btn_send.config(state="normal"))
+
+    def start_connection(self):
+        if self.connection_running: return
+        
+        url = self.entry_url.get()
+        # Coleta variáveis da treeview para monitorar
+        variables = []
+        for item_id in self.tree.get_children():
+            item = self.tree.item(item_id)
+            variables.append(item['values']) # (ns, name)
+            
+        self.connection_running = True
+        self.btn_start.config(state="disabled")
+        self.btn_stop.config(state="normal")
+        
+        thread = threading.Thread(target=self.run_persistent_loop, args=(url, variables), daemon=True)
+        thread.start()
+        
+    def stop_connection(self):
+        self.connection_running = False
+        self.btn_start.config(state="normal")
+        self.btn_stop.config(state="disabled")
+        self.log("Parando conexão...")
+
+    def run_persistent_loop(self, url, variables):
+        asyncio.run(self._async_loop(url, variables))
+
+    async def _async_loop(self, url, variables):
+        try:
+            async with Client(url=url) as client:
+                self.log("Conectado (Persistente)!")
+                
+                # Monitoramento
+                handler = SubHandler(self.log)
+                sub = await client.create_subscription(500, handler)
+                nodes = []
+                for ns, name in variables:
+                    try:
+                        node = client.get_node(f"ns={ns};s={name}")
+                        nodes.append(node)
+                    except Exception as e:
+                        self.log(f"Erro ao encontrar nó {name}: {e}")
+                
+                if nodes:
+                    await sub.subscribe_data_change(nodes)
+                    self.log(f"Monitorando {len(nodes)} variáveis.")
+
+                while self.connection_running:
+                    while not self.send_queue.empty():
+                        ns, name, val = self.send_queue.get()
+                        try:
+                            node = client.get_node(f"ns={ns};s={name}")
+                            dv = ua.DataValue(ua.Variant(val, ua.VariantType.Boolean))
+                            await node.write_attribute(ua.AttributeIds.Value, dv)
+                            self.log(f"Enviado: {name} = {val}")
+                        except Exception as e:
+                            self.log(f"Erro envio {name}: {e}")
+                    
+                    await asyncio.sleep(0.1)
+        except Exception as e:
+            self.log(f"Erro Conexão Persistente: {e}")
+        finally:
+            self.connection_running = False
+            self.after(0, lambda: self.btn_start.config(state="normal"))
+            self.after(0, lambda: self.btn_stop.config(state="disabled"))
+            self.log("Conexão encerrada.")

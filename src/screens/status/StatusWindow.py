@@ -129,7 +129,6 @@ class StatusWindow(ttk.Frame):
         
     def parar_monitoramento(self):
         # Sinaliza para parar o loop de monitoramento.
-        print(self.controller.frames)
         self.monitoring = False
 
     def _run_async_loop(self):
