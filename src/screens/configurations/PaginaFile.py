@@ -1,28 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext
-import asyncio
-import threading
 import json
-import queue
-from asyncua import Client, ua
-from src.controller.PLCController import PLCController
-
-class SubHandler:
-    def __init__(self, log_callback):
-        self.log_callback = log_callback
-    def datachange_notification(self, node, val, data):
-        self.log_callback(f"Monitor: {node} = {val}")
 
 class PaginaFile(ttk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        
-        # Instancia o controlador de PLC
-        self.plc_controller = PLCController()
-        
-        self.send_queue = queue.Queue()
-        self.connection_running = False
         
         # --- Estilos ---
         style = ttk.Style()
@@ -166,107 +149,47 @@ class PaginaFile(ttk.Frame):
 
     def start_async_thread(self):
         """Inicia a thread separada para não travar a GUI"""
-        
-        self.btn_send.config(state="disabled") # Desabilita botão para evitar cliques múltiplos
-        self.log("-" * 30)
-        
         # Pega os valores da GUI
-        url = self.entry_url.get()
         valor_booleano = self.bool_var.get()
 
         # Pega a variável selecionada na tabela
         selected = self.tree.selection()
         if not selected:
             self.log("ERRO: Nenhuma variável selecionada na tabela.")
-            self.btn_send.config(state="normal")
             return
         
         item = self.tree.item(selected[0])
         ns, var_name = item['values']
         
-        if self.connection_running:
-            self.send_queue.put((ns, var_name, valor_booleano))
-            self.log(f"Comando enfileirado: {var_name} -> {valor_booleano}")
-            self.btn_send.config(state="normal")
-            return
-
-        # Cria e inicia a thread
-        thread = threading.Thread(target=self.run_async_task, args=(url, ns, var_name, valor_booleano))
-        thread.start()
-
-    def run_async_task(self, url, ns, var_name, valor_booleano):
-        """Wrapper para rodar o asyncio dentro da thread"""
-        try:
-            # Passamos self.log como callback para o controller
-            asyncio.run(self.plc_controller.connect_and_send(url, ns, var_name, valor_booleano, self.log))
-        except Exception as e:
-            self.log(f"ERRO CRÍTICO: {e}")
-        finally:
-            # Reabilita o botão na thread principal
-            self.after(0, lambda: self.btn_send.config(state="normal"))
+        # Usa o serviço compartilhado
+        if self.controller.shared_plc.connected:
+            self.controller.shared_plc.write(ns, var_name, valor_booleano)
+        else:
+            self.log("ERRO: Conexão não iniciada. Clique em Start Connection.")
 
     def start_connection(self):
-        if self.connection_running: return
+        if self.controller.shared_plc.running: return
         
         url = self.entry_url.get()
-        # Coleta variáveis da treeview para monitorar
-        variables = []
-        for item_id in self.tree.get_children():
-            item = self.tree.item(item_id)
-            variables.append(item['values']) # (ns, name)
-            
-        self.connection_running = True
+        
+        # Configura o log do serviço para sair nesta tela
+        self.controller.shared_plc.set_log_callback(self.log)
+        
+        # Inicia o serviço
+        self.controller.shared_plc.start(url)
+        
+        # Atualiza botões
         self.btn_start.config(state="disabled")
         self.btn_stop.config(state="normal")
         
-        thread = threading.Thread(target=self.run_persistent_loop, args=(url, variables), daemon=True)
-        thread.start()
+        # Inscreve as variáveis da lista para monitoramento no log
+        for item_id in self.tree.get_children():
+            item = self.tree.item(item_id)
+            ns, name = item['values']
+            # Callback simples para logar mudanças nesta tela
+            self.controller.shared_plc.subscribe(ns, name, lambda n, v: self.log(f"Monitor: {n} = {v}"))
         
     def stop_connection(self):
-        self.connection_running = False
+        self.controller.shared_plc.stop()
         self.btn_start.config(state="normal")
         self.btn_stop.config(state="disabled")
-        self.log("Parando conexão...")
-
-    def run_persistent_loop(self, url, variables):
-        asyncio.run(self._async_loop(url, variables))
-
-    async def _async_loop(self, url, variables):
-        try:
-            async with Client(url=url) as client:
-                self.log("Conectado (Persistente)!")
-                
-                # Monitoramento
-                handler = SubHandler(self.log)
-                sub = await client.create_subscription(500, handler)
-                nodes = []
-                for ns, name in variables:
-                    try:
-                        node = client.get_node(f"ns={ns};s={name}")
-                        nodes.append(node)
-                    except Exception as e:
-                        self.log(f"Erro ao encontrar nó {name}: {e}")
-                
-                if nodes:
-                    await sub.subscribe_data_change(nodes)
-                    self.log(f"Monitorando {len(nodes)} variáveis.")
-
-                while self.connection_running:
-                    while not self.send_queue.empty():
-                        ns, name, val = self.send_queue.get()
-                        try:
-                            node = client.get_node(f"ns={ns};s={name}")
-                            dv = ua.DataValue(ua.Variant(val, ua.VariantType.Boolean))
-                            await node.write_attribute(ua.AttributeIds.Value, dv)
-                            self.log(f"Enviado: {name} = {val}")
-                        except Exception as e:
-                            self.log(f"Erro envio {name}: {e}")
-                    
-                    await asyncio.sleep(0.1)
-        except Exception as e:
-            self.log(f"Erro Conexão Persistente: {e}")
-        finally:
-            self.connection_running = False
-            self.after(0, lambda: self.btn_start.config(state="normal"))
-            self.after(0, lambda: self.btn_stop.config(state="disabled"))
-            self.log("Conexão encerrada.")

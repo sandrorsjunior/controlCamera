@@ -1,21 +1,6 @@
 import tkinter as tk  # Importa a biblioteca padrão de interface gráfica do Python.
 from tkinter import ttk  # Importa widgets com estilo moderno (Themed Tkinter).
 import json  # Importa biblioteca para ler arquivos de configuração JSON.
-import asyncio  # Importa biblioteca para programação assíncrona (necessária para OPC UA).
-import threading  # Importa biblioteca para criar threads paralelas (evita travar a interface).
-from asyncua import Client  # Importa o cliente OPC UA da biblioteca asyncua.
-
-class SubHandler:
-    """
-    Classe manipuladora (Handler) responsável por receber eventos de mudança de dados do servidor OPC UA.
-    """
-    def __init__(self, update_callback):
-        self.update_callback = update_callback  # Guarda a função que será chamada na UI quando o valor mudar.
-
-    def datachange_notification(self, node, val, data):
-        # Método chamado automaticamente pela biblioteca quando uma variável monitorada muda de valor.
-        # Envia o NodeId (convertido para string) e o novo valor para o callback da interface.
-        self.update_callback(str(node.nodeid), val)
 
 class StatusWindow(ttk.Frame):
     def __init__(self, parent, controller):
@@ -24,7 +9,6 @@ class StatusWindow(ttk.Frame):
         
         # Variáveis de Controle
         self.monitoring = False  # Flag para controlar se o loop de monitoramento deve continuar rodando.
-        self.thread = None  # Variável para armazenar a thread secundária.
         self.vars_ui = {} # Dicionário para mapear NodeId (string) -> BooleanVar (variável do Tkinter).
         self.plc_url = "opc.tcp://localhost:4840"  # URL padrão, será substituída pelo valor do JSON.
         
@@ -119,54 +103,28 @@ class StatusWindow(ttk.Frame):
 
     def iniciar_monitoramento(self):
         # Inicia o processo de monitoramento.
-        if self.monitoring:
-            return  # Evita iniciar duas vezes.
         self.load_config_and_build_ui()  # Recarrega configurações.
         self.monitoring = True  # Ativa a flag.
-        # Cria e inicia a thread dedicada ao loop assíncrono do OPC UA.
-        self.thread = threading.Thread(target=self._run_async_loop, daemon=True)
-        self.thread.start()
+        
+        # Verifica se o serviço compartilhado está conectado
+        shared = self.controller.shared_plc
+        if shared.connected:
+            # Inscreve todas as variáveis configuradas
+            try:
+                with open("plc_config.json", "r") as f:
+                    data = json.load(f)
+                    variables = data.get("variables", [])
+                    
+                    for var in variables:
+                        if len(var) >= 2:
+                            ns, name = var[0], var[1]
+                            # Registra o callback de atualização da UI
+                            shared.subscribe(ns, name, self.update_ui_callback)
+            except Exception as e:
+                print(f"Erro ao inscrever variáveis: {e}")
+        else:
+            print("Aviso: Conexão PLC não iniciada na tela File.")
         
     def parar_monitoramento(self):
         # Sinaliza para parar o loop de monitoramento.
         self.monitoring = False
-
-    def _run_async_loop(self):
-        # Função alvo da thread: inicia o loop de eventos do asyncio.
-        asyncio.run(self._monitor_task())
-
-    async def _monitor_task(self):
-        # Tarefa assíncrona principal.
-        try:
-            # Conecta ao servidor OPC UA (context manager fecha conexão automaticamente ao sair).
-            async with Client(url=self.plc_url) as client:
-                handler = SubHandler(self.update_ui_callback)  # Instancia o manipulador de eventos.
-                sub = await client.create_subscription(500, handler)  # Cria assinatura (check a cada 500ms).
-                
-                nodes_to_subscribe = []
-                # Copia das chaves para evitar erro de iteração se modificarmos o dict
-                keys = list(self.vars_ui.keys())
-
-                # Itera sobre as variáveis configuradas na UI para encontrar seus nós no servidor.
-                for node_id_str in keys:
-                    try:
-                        node = client.get_node(node_id_str)
-                        # Garante que a chave usada no callback (str(node.nodeid)) aponte para a variável correta
-                        canonical_id = str(node.nodeid)
-                        if canonical_id not in self.vars_ui:
-                             self.vars_ui[canonical_id] = self.vars_ui[node_id_str]
-                        
-                        nodes_to_subscribe.append(node)
-                    except Exception:
-                        pass  # Ignora nós que não existem no servidor.
-                
-                if nodes_to_subscribe:
-                    # Inscreve os nós encontrados para receber notificações de mudança.
-                    await sub.subscribe_data_change(nodes_to_subscribe)
-                
-                # Mantém o loop rodando enquanto a flag monitoring for True.
-                while self.monitoring:
-                    await asyncio.sleep(1)  # Pausa não bloqueante de 1 segundo.
-        except Exception as e:
-            print(f"Erro Monitoramento: {e}")
-            self.monitoring = False  # Garante que a flag seja desligada em caso de erro.

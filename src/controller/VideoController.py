@@ -5,8 +5,6 @@ import json
 import threading
 import asyncio
 from .util.ProcessImage import ProcessImage
-from src.controller.PLCController import PLCController
-
 
 
 class VideoController:
@@ -19,11 +17,10 @@ class VideoController:
         self.cap = cap    # Objeto VideoCapture do OpenCV
         
         # Variáveis de Estado
-        self.plc_controller = PLCController()
         self.sending_plc = False # Flag para evitar envios sobrepostos
-        self.running = False
         self.imagem_congelada = None 
         self.modo_estatico = False
+        self.running = False
         self.circle_detected = False
         self.msg_sent_to_plc = False
         self.fps = 0
@@ -185,14 +182,11 @@ class VideoController:
             url = self.plc_config.get("url")
             variables = self.plc_config.get("variables", [])
             
-            # Callback simples para log (pode ser melhorado para usar o log da UI)
-            log_cb = lambda msg: print(f"[PLC Auto]: {msg}")
-            
+            # Usa o serviço compartilhado se estiver conectado
+            shared = self.view.controller.shared_plc
             for ns, name in variables:
-                # Envia True para as variáveis configuradas
-                asyncio.run(self.plc_controller.connect_and_send(url, str(ns), name, True, log_cb))
-                
-        except Exception as e:
-            print(f"Erro ao enviar para PLC: {e}")
+                shared.write(ns, name, True)
+                    # Envia True para as variáveis configuradas usando a conexão existente
+            
         finally:
             self.sending_plc = False

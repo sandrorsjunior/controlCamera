@@ -6,6 +6,7 @@ from src.screens.stream.PaginaVideo import PaginaVideo
 from src.screens.ImageConfigurations.PaginaFuntions import PaginaFunctions
 from src.screens.configurations.PaginaFile import PaginaFile
 from src.screens.status.StatusWindow import StatusWindow
+from src.controller.SharedPLC import SharedPLC
 
 
 class AplicacaoApp(tk.Tk):
@@ -28,6 +29,9 @@ class AplicacaoApp(tk.Tk):
         
         # Dicionário para guardar as referências das janelas
         self.frames = {}
+        
+        # Serviço Compartilhado de PLC
+        self.shared_plc = SharedPLC()
         
         # Criar o Menu Superior (Fixo em todas as janelas)
         self.criar_menu()
@@ -92,4 +96,5 @@ class AplicacaoApp(tk.Tk):
     def fechar_app(self):
         if self.cap.isOpened():
             self.cap.release()
+        self.shared_plc.stop()
         self.destroy()
