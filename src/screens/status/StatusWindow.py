@@ -68,7 +68,6 @@ class StatusWindow(ttk.Frame):
                 data = json.load(f)
                 self.plc_url = data.get("url", self.plc_url)  # Lê a URL do PLC.
                 variables = data.get("variables", [])  # Lê a lista de variáveis.
-            print(variables)
         except Exception as e:
             print(f"Erro ao ler config: {e}")
             
@@ -130,6 +129,7 @@ class StatusWindow(ttk.Frame):
         
     def parar_monitoramento(self):
         # Sinaliza para parar o loop de monitoramento.
+        print(self.controller.frames)
         self.monitoring = False
 
     def _run_async_loop(self):
