@@ -9,10 +9,10 @@ class PaginaFunctions(ttk.Frame):
         super().__init__(parent)
         self.controller = controller
         
-        label = ttk.Label(self, text="Carregar Perfil de Configuração", font=("Helvetica", 16))
-        label.pack(side="top", fill="x", pady=10, padx=10)
+        lbl_title = ttk.Label(self, text="Carregar Perfil de Configuração", font=("Helvetica", 16))
+        lbl_title.pack(side="top", fill="x", pady=10, padx=10)
         
-        # Frame para a lista e scrollbarlist_frame = ttk.Frame(self)
+        # Frame para a lista e scrollbar
         list_frame = ttk.Frame(self)
         list_frame.pack(fill="both", expand=True, padx=10, pady=10)
         

@@ -147,7 +147,7 @@ class PaginaVideo(ttk.Frame):
         self.slider_threshold_max = self.create_labeled_slider(box_threshold, "Max", 0, 255, 150)
 
         # 7. Params of circles
-        box_circle = ttk.LabelFrame(self.frame_controls, text="circle prams")
+        box_circle = ttk.LabelFrame(self.frame_controls, text="Circle Params")
         box_circle.pack(fill="x", pady=5, padx=5)
         
         self.slider_circle_dp = self.create_labeled_slider(box_circle, "DP", 1, 2, 1)
