@@ -11,15 +11,26 @@ class SubHandler:
 
     def datachange_notification(self, node, val, data):
         try:
-            node_id = str(node.nodeid)
+            # Obtém os componentes do NodeId diretamente para comparação segura
+            ns_idx = node.nodeid.NamespaceIndex
+            ident = node.nodeid.Identifier
+            
+            # Debug: Mostra o que chegou do PLC
+            # print(f"[SharedPLC] Notificação: ns={ns_idx}, id={ident}, val={val}")
+            
             # Itera sobre as subscrições para encontrar a correspondente
+            found = False
             for sub in self.subscriptions:
-                # Reconstrói o NodeID esperado (ex: ns=4;s=SinalPython)
-                target_id = f"ns={sub['ns']};s={sub['name']}"
-                if target_id == node_id:
+                # Compara Namespace e Nome (converte para string para garantir igualdade)
+                if str(sub['ns']) == str(ns_idx) and str(sub['name']) == str(ident):
+                    found = True
                     if sub['callback']:
-                        # Chama o callback passando (node_id, valor)
-                        sub['callback'](node_id, val)
+                        # Reconstrói o NodeID esperado pela UI para garantir que a chave do dicionário bata
+                        target_id = f"ns={sub['ns']};s={sub['name']}"
+                        sub['callback'](target_id, val)
+            
+            if not found:
+                print(f"[SharedPLC] AVISO: Nenhuma subscrição encontrada para ns={ns_idx}, id={ident}")
         except Exception as e:
             print(f"Erro no callback OPC UA: {e}")
 
@@ -44,6 +55,12 @@ class SharedPLC:
 
     def start(self, url):
         if self.running: return
+        
+        # Se existir uma thread antiga (ex: parando), aguarda ela terminar para evitar duplicidade
+        if self._thread and self._thread.is_alive():
+            self.running = False
+            self._thread.join(2.0) # Aguarda até 2s para limpeza
+            
         self.url = url
         self.running = True
         # Inicia a thread daemon que rodará o loop asyncio

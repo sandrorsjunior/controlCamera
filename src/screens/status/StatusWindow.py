@@ -11,6 +11,7 @@ class StatusWindow(ttk.Frame):
         self.monitoring = False  # Flag para controlar se o loop de monitoramento deve continuar rodando.
         self.vars_ui = {} # Dicionário para mapear NodeId (string) -> BooleanVar (variável do Tkinter).
         self.plc_url = "opc.tcp://localhost:4840"  # URL padrão, será substituída pelo valor do JSON.
+        self.subscribed_vars = set()
         
         # Layout Principal
         # Cria o título da página.
@@ -40,6 +41,7 @@ class StatusWindow(ttk.Frame):
         self.load_config_and_build_ui()
 
     def load_config_and_build_ui(self):
+        
         # Limpa a interface existente (remove widgets antigos da lista).
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
@@ -88,16 +90,30 @@ class StatusWindow(ttk.Frame):
     def update_ui_callback(self, node_id_str, value):
         # Callback chamado pela thread secundária.
         # Usa .after(0, ...) para agendar a atualização na thread principal (Main Thread) do Tkinter.
+        # print(f"Update recebido: {node_id_str} -> {value}")
         # Isso é crucial porque o Tkinter não é thread-safe.
-        self.after(15, lambda: self._update_checkbox(node_id_str, value))
+        self.after(15, lambda n=node_id_str, v=value: self._update_checkbox(n, v))
 
     def _update_checkbox(self, node_id_str, value):
         # Atualiza o valor do checkbox na interface.
         if node_id_str in self.vars_ui:
+            # Tratamento robusto para o valor booleano
+            bool_val = value
+            
+            # Se for string, trata "false" como False
+            if isinstance(value, str):
+                bool_val = value.lower() not in ('false', '0', 'off')
+            # Se for um objeto DataValue do OPC UA (caso raro), tenta extrair o valor
+            elif hasattr(value, 'Value'):
+                bool_val = bool(value.Value.Value)
+            else:
+                bool_val = bool(value)
+
             item = self.vars_ui[node_id_str]
-            item["var"].set(bool(value))
-            color = "#00FF00" if value else "#FF0000" # Verde se True, Vermelho se False
+            item["var"].set(bool_val)
+            color = "#00FF00" if bool_val else "#FF0000" # Verde se True, Vermelho se False
             item["canvas"].itemconfig(item["led"], fill=color)
+            # print(f"UI Atualizada: {node_id_str} para {color}")
         else:
             print(f"Aviso: NodeID '{node_id_str}' recebido do callback não encontrado na UI.")
 
@@ -108,22 +124,24 @@ class StatusWindow(ttk.Frame):
         
         # Verifica se o serviço compartilhado está conectado
         shared = self.controller.shared_plc
-        if shared.connected:
-            # Inscreve todas as variáveis configuradas
-            try:
-                with open("plc_config.json", "r") as f:
-                    data = json.load(f)
-                    variables = data.get("variables", [])
-                    
-                    for var in variables:
-                        if len(var) >= 2:
-                            ns, name = var[0], var[1]
-                            # Registra o callback de atualização da UI
+        # Inscreve todas as variáveis configuradas (O SharedPLC gerencia a conexão internamente)
+        try:
+            with open("plc_config.json", "r") as f:
+                data = json.load(f)
+                variables = data.get("variables", [])
+                
+                for var in variables:
+                    if len(var) >= 2:
+                        ns, name = var[0], var[1]
+                        node_id = f"ns={ns};s={name}"
+                        # Evita subscrever múltiplas vezes a mesma variável
+                        if node_id not in self.subscribed_vars:
                             shared.subscribe(ns, name, self.update_ui_callback)
-            except Exception as e:
-                print(f"Erro ao inscrever variáveis: {e}")
-        else:
-            print("Aviso: Conexão PLC não iniciada na tela File.")
+                        if node_id in self.subscribed_vars:
+                            print(f"Monitorando: {node_id}")
+                            self.subscribed_vars.add(node_id)
+        except Exception as e:
+            print(f"Erro ao inscrever variáveis: {e}")
         
     def parar_monitoramento(self):
         # Sinaliza para parar o loop de monitoramento.
