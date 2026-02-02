@@ -6,6 +6,48 @@ O sistema captura vídeo em tempo real, processa imagens para detectar objetos/c
 
 ---
 
+## 🚀 Instalação e Configuração
+
+### 1. Pré-requisitos
+*   **Python 3.12** ou superior.
+*   **Git** instalado.
+
+### 2. Clonar o Repositório
+Abra o terminal e execute:
+```bash
+git clone https://github.com/seu-usuario/controlCamera.git
+cd controlCamera
+```
+
+### 3. Instalar o Poetry
+Este projeto utiliza o **Poetry** para gerenciamento de dependências. Se ainda não o tem instalado:
+
+**Windows (PowerShell):**
+```powershell
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+```
+
+**Linux/macOS:**
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+```
+
+### 4. Replicar o Ambiente Python
+Para instalar todas as dependências exatas definidas no `poetry.lock` e criar o ambiente virtual:
+
+```bash
+poetry install
+```
+
+### 5. Executar a Aplicação
+Para iniciar o sistema dentro do ambiente virtual configurado:
+
+```bash
+poetry run python main.py
+```
+
+---
+
 ## 🏗️ Arquitetura e Classes Principais
 
 O projeto segue uma estrutura modular onde a lógica de negócio (Controllers), a interface (Screens/Views) e a comunicação externa (SharedPLC) estão separadas.
