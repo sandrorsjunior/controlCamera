@@ -20,6 +20,8 @@ class PaginaVideo(ttk.Frame):
         self.var_forma = tk.StringVar(value="square")
         self.var_imagem_tipo = tk.StringVar(value="img_resultado")
         self.var_type_of_segmentation = tk.StringVar(value="by_color")
+        self.var_mode_trigger = tk.BooleanVar(value=False)
+        self.var_trigger_name = tk.StringVar(value="CameraS")
         
         # --- LAYOUT PRINCIPAL (2 Colunas) ---
         # Coluna Esquerda: Vídeo + Botões Ação
@@ -157,6 +159,16 @@ class PaginaVideo(ttk.Frame):
         self.slider_circle_min_radius = self.create_labeled_slider(box_circle, "Min R", 0, 100, 10)
         self.slider_circle_max_radius = self.create_labeled_slider(box_circle, "Max R", 0, 200, 100)
 
+        # 8. Trigger Mode
+        box_trigger = ttk.LabelFrame(self.frame_controls, text="Trigger Mode")
+        box_trigger.pack(fill="x", pady=5)
+        
+        ttk.Checkbutton(box_trigger, text="Enable Trigger Mode", variable=self.var_mode_trigger).pack(anchor="w", padx=5, pady=2)
+        
+        frame_trig_entry = ttk.Frame(box_trigger)
+        frame_trig_entry.pack(fill="x", padx=5, pady=2)
+        ttk.Label(frame_trig_entry, text="Var Name:").pack(side="left")
+        ttk.Entry(frame_trig_entry, textvariable=self.var_trigger_name).pack(side="left", fill="x", expand=True, padx=5)
 
         # 4. Contour & Blur Config (Lado a Lado)
         frame_configs = ttk.Frame(self.frame_controls)
