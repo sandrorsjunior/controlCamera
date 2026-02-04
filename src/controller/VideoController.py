@@ -2,8 +2,6 @@ import cv2
 import math
 import numpy as np
 import json
-import threading
-import asyncio
 
 from src.model.OpcuaDTO import OpcuaDTO
 from .util.ProcessImage import ProcessImage
@@ -26,8 +24,6 @@ class VideoController:
         self.circle_detected = False
         self.msg_sent_to_plc = False
         self.fps = 0
-        self.trigger_plc_active = False
-        self.subscribed_trigger_var = None
         
         # Cache da configuração do PLC para evitar leitura de disco constante
         self.plc_config = {}
@@ -67,21 +63,6 @@ class VideoController:
         self.view.var_pecas_detectadas.set("0")
         self.view.lbl_video.configure(image="") # Limpa visualmente
         self.iniciar() # Reinicia o loop
-
-    def on_plc_trigger_change(self, node_id, val):
-        """Callback para monitorar a variável de trigger do PLC."""
-        try:
-            # Normaliza o valor recebido para booleano
-            if hasattr(val, 'Value'):
-                val = val.Value.Value
-            
-            if isinstance(val, str):
-                self.trigger_plc_active = val.lower() in ('true', '1', 'on')
-            else:
-                self.trigger_plc_active = bool(val)
-
-        except Exception as e:
-            print(f"Erro no callback do trigger: {e}")
 
     def loop(self):
         if not self.running or self.modo_estatico:
@@ -152,54 +133,43 @@ class VideoController:
         else:
             self.circle_detected = False
 
-        
-        if self.view.var_mode_trigger.get():
-            node_id_str = f"ns=4;s={self.view.var_trigger_name.get()}"
-            variable_triggered = OpcuaDTO().get_variable(node_id_str)
-            variable_SinalPython = OpcuaDTO().get_variable("ns=4;s=SinalPython")
-            if self.circle_detected and not self.msg_sent_to_plc and variable_triggered:
-                self.trigger_plc_signals(value=True)
-                print("Trigger PLC Enviado: TRUE")
-            elif variable_SinalPython and self.msg_sent_to_plc:
-                self.trigger_plc_signals(value=False)
-                print("Trigger PLC Enviado: False")
+        self._process_plc_logic()
 
         # Decide qual imagem mostrar baseado na seleção da View
         self.view.atualizar_visualizacao_final(img_processar, mask, mask_clean, self.imagem_congelada)
 
-    def check_blue_circle(self, contour, image):
-        """Verifica se o contorno é um círculo e se a cor média é azul."""
-        # 1. Verificar Circularidade
-        perimeter = cv2.arcLength(contour, True)
-        if perimeter == 0: return False
-        
-        area = cv2.contourArea(contour)
-        if area < 500: return False # Ignorar ruído muito pequeno
-        
-        # Fórmula da circularidade: 4 * pi * Area / Perimetro^2
-        # Círculo perfeito = 1.0. Aceitamos > 0.7
-        circularity = 4 * np.pi * area / (perimeter ** 2)
-        if circularity < 0.7:
-            return False
+    def _process_plc_logic(self):
+        """Gerencia a lógica de interação com o PLC (Trigger e Sinais)."""
+        if not self.view.var_mode_trigger.get():
+            return
 
-        # 2. Verificar Cor (Azul)
-        # Criar máscara para o contorno específico
-        mask = np.zeros(image.shape[:2], dtype=np.uint8)
-        cv2.drawContours(mask, [contour], -1, 255, -1)
-        
-        # Calcular cor média dentro do contorno (BGR)
-        mean_val = cv2.mean(image, mask=mask)[:3]
-        
-        # Converter BGR médio para HSV
-        mean_hsv = cv2.cvtColor(np.uint8([[mean_val]]), cv2.COLOR_BGR2HSV)[0][0]
-        h, s, v = mean_hsv
-        
-        # Faixa de Azul no OpenCV (H: 0-180). Azul é aprox 120.
-        # Definindo intervalo: H=[100, 140], S>50, V>50
-        return 100 <= h <= 140 and s > 50 and v > 50
+        try:
+            # Recupera valores do DTO com segurança
+            trigger_node = f"ns=4;s={self.view.var_trigger_name.get()}"
+            signal_node = "ns=4;s=SinalPython"
+            
+            dto = OpcuaDTO()
+            trigger_active = dto.get_variable(trigger_node) if dto.isVariableSet(trigger_node) else False
+            signal_active = dto.get_variable(signal_node) if dto.isVariableSet(signal_node) else False
 
-    def trigger_plc_signals(self, sgnals=["SinalPython"], value=True):
+            # Lógica de disparo
+            if self.circle_detected and not self.msg_sent_to_plc and trigger_active:
+                self.trigger_plc_signals(value=True)
+                print("Trigger PLC Enviado: TRUE")
+            
+            # Lógica de reset (pulso)
+            elif signal_active and self.msg_sent_to_plc:
+                self.trigger_plc_signals(value=False)
+                print("Trigger PLC Enviado: False")
+                
+        except Exception as e:
+            print(f"Erro no processamento PLC: {e}")
+
+    def trigger_plc_signals(self, sgnals=None, value=True):
         """Lê a configuração e envia sinal para o PLC."""
+        if sgnals is None:
+            sgnals = ["SinalPython"]
+            
         self.sending_plc = True
         try:
             url = self.plc_config.get("url")
