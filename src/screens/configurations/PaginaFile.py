@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 import json
+import cv2
 
 class PaginaFile(ttk.Frame):
     def __init__(self, parent, controller):
@@ -20,6 +21,21 @@ class PaginaFile(ttk.Frame):
         self.entry_url = ttk.Entry(config_frame, width=40)
         self.entry_url.insert(0, "opc.tcp://192.168.250.1:4840")
         self.entry_url.pack(side="left", fill="x", expand=True, padx=5)
+
+        # --- Frame de Configuração de Câmera ---
+        camera_frame = ttk.LabelFrame(self, text="Configuração de Câmera", padding="10")
+        camera_frame.pack(fill="x", padx=10, pady=5)
+
+        self.var_use_custom_camera = tk.BooleanVar(value=False)
+        self.chk_use_custom_camera = ttk.Checkbutton(camera_frame, text="Usar Câmera Personalizada", variable=self.var_use_custom_camera)
+        self.chk_use_custom_camera.pack(side="left", padx=5)
+
+        ttk.Label(camera_frame, text="Source (ID/URL):").pack(side="left", padx=5)
+        self.entry_camera_source = ttk.Entry(camera_frame, width=20)
+        self.entry_camera_source.insert(0, "0")
+        self.entry_camera_source.pack(side="left", padx=5)
+
+        ttk.Button(camera_frame, text="Aplicar Câmera", command=self.apply_camera_settings).pack(side="left", padx=5)
 
         # --- Frame de Gestão de Variáveis ---
         manage_frame = ttk.LabelFrame(self, text="Gestão de Variáveis", padding="10")
@@ -93,6 +109,41 @@ class PaginaFile(ttk.Frame):
 
         self.log_area = scrolledtext.ScrolledText(log_frame, height=8, state='disabled', font=("Consolas", 9))
         self.log_area.pack(fill="both", expand=True)
+
+    def apply_camera_settings(self):
+        """Aplica as configurações de câmera selecionadas."""
+        source = 0
+        if self.var_use_custom_camera.get():
+            entry_val = self.entry_camera_source.get()
+            # Tenta converter para int (índice de câmera), senão usa string (URL/Arquivo)
+            if entry_val.isdigit():
+                source = int(entry_val)
+            else:
+                source = entry_val
+        
+        self.log(f"Configurando câmera com source: {source}")
+        
+        try:
+            if hasattr(self.controller, 'cap'):
+                if self.controller.cap is not None:
+                    self.controller.cap.release()
+                
+                self.controller.cap = cv2.VideoCapture(source)
+                
+                # Otimização para streams de rede (reduz delay e erros de buffer)
+                if isinstance(source, str) and (source.lower().startswith("http") or source.lower().startswith("rtsp")):
+                    self.controller.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                
+                # Atualiza VideoController em qualquer tela que o tenha
+                if hasattr(self.controller, 'frames'):
+                    for frame in self.controller.frames.values():
+                        if hasattr(frame, 'video_controller'):
+                            frame.video_controller.cap = self.controller.cap
+                
+                status = "Aberta" if self.controller.cap.isOpened() else "Falha ao abrir"
+                self.log(f"Câmera aplicada. Status: {status}")
+        except Exception as e:
+            self.log(f"Erro ao aplicar câmera: {e}")
 
     def add_variable(self):
         ns = self.entry_ns.get()

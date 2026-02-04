@@ -24,6 +24,7 @@ class VideoController:
         self.circle_detected = False
         self.msg_sent_to_plc = False
         self.fps = 0
+        self.read_errors = 0
         
         # Cache da configuração do PLC para evitar leitura de disco constante
         self.plc_config = {}
@@ -70,10 +71,17 @@ class VideoController:
 
         ret, frame = self.cap.read()
         if ret:
+            self.read_errors = 0
             # Mostra o frame cru (ou processado se quiséssemos live processing)
             # Aqui, conforme lógica original, mostramos o frame e processamos em background/overlay
             self.view.mostrar_imagem_no_label(frame)
             self.atualizar_processamento(frame)
+        else:
+            self.read_errors += 1
+            if self.read_errors > 5:
+                # Se falhar consecutivamente, desacelera o loop para evitar spam de log e alto uso de CPU
+                self.view.after(500, self.loop)
+                return
         
         if self.fps <= 50:
             self.fps += 1
