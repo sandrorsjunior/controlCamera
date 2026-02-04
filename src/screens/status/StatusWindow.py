@@ -1,6 +1,7 @@
 import tkinter as tk  # Importa a biblioteca padrão de interface gráfica do Python.
 from tkinter import ttk  # Importa widgets com estilo moderno (Themed Tkinter).
 import json  # Importa biblioteca para ler arquivos de configuração JSON.
+from src.model.OpcuaDTO import OpcuaDTO
 
 class StatusWindow(ttk.Frame):
     def __init__(self, parent, controller):
@@ -120,6 +121,8 @@ class StatusWindow(ttk.Frame):
     def iniciar_monitoramento(self):
         # Inicia o processo de monitoramento.
         self.load_config_and_build_ui()  # Recarrega configurações.
+        # Registra esta janela como observadora do DTO
+        OpcuaDTO().add_observer(self.update_ui_callback)
         self.monitoring = True  # Ativa a flag.
         
         # Verifica se o serviço compartilhado está conectado
@@ -136,7 +139,8 @@ class StatusWindow(ttk.Frame):
                         node_id = f"ns={ns};s={name}"
                         # Evita subscrever múltiplas vezes a mesma variável
                         if node_id not in self.subscribed_vars:
-                            shared.subscribe(ns, name, self.update_ui_callback)
+                            # Passamos None como callback, pois a atualização virá via OpcuaDTO observer
+                            shared.subscribe(ns, name, None)
                         if node_id in self.subscribed_vars:
                             print(f"Monitorando: {node_id}")
                             self.subscribed_vars.add(node_id)
@@ -146,3 +150,5 @@ class StatusWindow(ttk.Frame):
     def parar_monitoramento(self):
         # Sinaliza para parar o loop de monitoramento.
         self.monitoring = False
+        # Remove o observador para evitar chamadas em janela fechada/parada
+        OpcuaDTO().remove_observer(self.update_ui_callback)

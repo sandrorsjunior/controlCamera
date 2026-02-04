@@ -1,6 +1,7 @@
 import asyncio
 import threading
 from asyncua import Client, ua
+from src.model.OpcuaDTO import OpcuaDTO
 
 class SubHandler:
     """
@@ -14,6 +15,10 @@ class SubHandler:
             # Obtém os componentes do NodeId diretamente para comparação segura
             ns_idx = node.nodeid.NamespaceIndex
             ident = node.nodeid.Identifier
+            
+            # Atualiza o DTO (Fonte única de verdade)
+            target_id = f"ns={ns_idx};s={ident}"
+            OpcuaDTO().set_variable(target_id, val)
             
             # Debug: Mostra o que chegou do PLC
             # print(f"[SharedPLC] Notificação: ns={ns_idx}, id={ident}, val={val}")
