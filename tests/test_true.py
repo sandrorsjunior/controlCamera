@@ -22,10 +22,15 @@ async def main():
         # Forçamos o tipo Boolean explicitamente
         print("Tentando escrever True...")
         
-        dv = ua.DataValue(ua.Variant(True, ua.VariantType.Boolean))
+        dvT = ua.DataValue(ua.Variant(True, ua.VariantType.Boolean))
         
         # Usamos write_attribute em vez de write_value para ser mais direto
-        await var_node.write_attribute(ua.AttributeIds.Value, dv)
+        await var_node.write_attribute(ua.AttributeIds.Value, dvT)
+
+        dvF = ua.DataValue(ua.Variant(False, ua.VariantType.Boolean))
+        
+        # Usamos write_attribute em vez de write_value para ser mais direto
+        await var_node.write_attribute(ua.AttributeIds.Value, dvF)
         
         # 4. Ler valor depois para confirmar
         valor_pos_escrita = await var_node.read_value()
