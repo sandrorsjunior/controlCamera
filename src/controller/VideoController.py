@@ -4,6 +4,8 @@ import numpy as np
 import json
 import threading
 import asyncio
+
+from src.model.OpcuaDTO import OpcuaDTO
 from .util.ProcessImage import ProcessImage
 
 
@@ -24,6 +26,8 @@ class VideoController:
         self.circle_detected = False
         self.msg_sent_to_plc = False
         self.fps = 0
+        self.trigger_plc_active = False
+        self.subscribed_trigger_var = None
         
         # Cache da configuração do PLC para evitar leitura de disco constante
         self.plc_config = {}
@@ -63,6 +67,21 @@ class VideoController:
         self.view.var_pecas_detectadas.set("0")
         self.view.lbl_video.configure(image="") # Limpa visualmente
         self.iniciar() # Reinicia o loop
+
+    def on_plc_trigger_change(self, node_id, val):
+        """Callback para monitorar a variável de trigger do PLC."""
+        try:
+            # Normaliza o valor recebido para booleano
+            if hasattr(val, 'Value'):
+                val = val.Value.Value
+            
+            if isinstance(val, str):
+                self.trigger_plc_active = val.lower() in ('true', '1', 'on')
+            else:
+                self.trigger_plc_active = bool(val)
+
+        except Exception as e:
+            print(f"Erro no callback do trigger: {e}")
 
     def loop(self):
         if not self.running or self.modo_estatico:
@@ -133,13 +152,17 @@ class VideoController:
         else:
             self.circle_detected = False
 
-
-        if self.circle_detected and not self.msg_sent_to_plc:
-            self.trigger_plc_signals()
-            #print("Trigger PLC Signal", self.fps, self.msg_sent_to_plc)
-            self.msg_sent_to_plc = True
-        else:
-            self.view.var_pecas_detectadas.set("0")
+        
+        if self.view.var_mode_trigger.get():
+            node_id_str = f"ns=4;s={self.view.var_trigger_name.get()}"
+            variable_triggered = OpcuaDTO().get_variable(node_id_str)
+            variable_SinalPython = OpcuaDTO().get_variable("ns=4;s=SinalPython")
+            if self.circle_detected and not self.msg_sent_to_plc and variable_triggered:
+                self.trigger_plc_signals(value=True)
+                print("Trigger PLC Enviado: TRUE")
+            elif variable_SinalPython and self.msg_sent_to_plc:
+                self.trigger_plc_signals(value=False)
+                print("Trigger PLC Enviado: False")
 
         # Decide qual imagem mostrar baseado na seleção da View
         self.view.atualizar_visualizacao_final(img_processar, mask, mask_clean, self.imagem_congelada)
@@ -175,7 +198,7 @@ class VideoController:
         # Definindo intervalo: H=[100, 140], S>50, V>50
         return 100 <= h <= 140 and s > 50 and v > 50
 
-    def trigger_plc_signals(self):
+    def trigger_plc_signals(self, sgnals=["SinalPython"], value=True):
         """Lê a configuração e envia sinal para o PLC."""
         self.sending_plc = True
         try:
@@ -185,8 +208,10 @@ class VideoController:
             # Usa o serviço compartilhado se estiver conectado
             shared = self.view.controller.shared_plc
             for ns, name in variables:
-                shared.write(ns, name, True)
+                if name in sgnals:
+                    shared.write(ns, name, value)
                     # Envia True para as variáveis configuradas usando a conexão existente
+            self.msg_sent_to_plc = value
             
         finally:
             self.sending_plc = False
