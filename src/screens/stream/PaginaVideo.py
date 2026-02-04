@@ -21,7 +21,7 @@ class PaginaVideo(ttk.Frame):
         self.var_imagem_tipo = tk.StringVar(value="img_resultado")
         self.var_type_of_segmentation = tk.StringVar(value="by_color")
         self.var_mode_trigger = tk.BooleanVar(value=False)
-        self.var_trigger_name = tk.StringVar(value="CameraS")
+        self.var_trigger_name = tk.StringVar(value="CamaraS")
         
         # --- LAYOUT PRINCIPAL (2 Colunas) ---
         # Coluna Esquerda: Vídeo + Botões Ação

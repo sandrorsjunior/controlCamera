@@ -2,8 +2,9 @@ import asyncio
 from asyncua import Client, ua
 from datetime import datetime, timedelta
 
-URL = "opc.tcp://localhost:4840"
-VARIAVEL_NOME = "CamaraS"
+#URL = "opc.tcp://localhost:4840"
+URL = "opc.tcp://192.168.250.1:4840"
+VARIAVEL_NOME = "CameraS"
 
 async def main():
     print(f"Conectando ao servidor OPC UA em {URL}...")
